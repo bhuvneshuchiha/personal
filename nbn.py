@@ -31,6 +31,7 @@ Pending points ->
 
 def generate_auth_token_adler():
     """
+    Keep this function in the frontend.
     This function is to get the job code from adler
     on this basis of the supplier name.
     """
@@ -57,6 +58,7 @@ def mandatory_field_validation_adler(request):
     subtotal = request.get("subtotal", "")
     supplier_name = request.get("supplier_name", "")
     total_amount = request.get("total_amount", "")
+    auth_token= request.get("auth_token", "")
     if (
         not invoice_date
         and invoice_number
@@ -90,6 +92,7 @@ def mandatory_field_validation_adler(request):
 def get_currency_and_change_amounts_adler(request):
     subtotal = request.get("subtotal", "")
     total_amount = request.get("total_amount", "")
+    auth_token= request.get("auth_token", "")
     currency_code_extracted = ""
 
     match = re.search(r"([A-Za-z]+)", subtotal)
@@ -103,7 +106,6 @@ def get_currency_and_change_amounts_adler(request):
             print(f"Alpha part (currency code): {currency_code_extracted}")
 
     url = "https://adleridemo.azurewebsites.net/api/public/accounts/currency"
-    auth_token = generate_auth_token_adler()
     payload = {}
     headers = {
         "Content-Type": "application/json",
@@ -134,13 +136,14 @@ def send_data_to_adler(request):
     return
 
 
-def get_job_code_info_adler(supplier_name):
+def get_job_code_info_adler(request):
     """
     the supplier name will come from the icr extraction and that will be pass
     onto this function.
     """
     url = "https://adleridemo.azurewebsites.net/api/public/procurement/supplier"
-    auth_token = generate_auth_token_adler()
+    supplier_name = request.get("supplier_name", "")
+    auth_token= request.get("auth_token", "")
 
     payload = json.dumps({"supplier_name": supplier_name})
     headers = {
@@ -185,7 +188,7 @@ def get_supplier_info_adler(request):
     Send the supplier name to this api to get the payment terms
     """
     url = "https://adleridemo.azurewebsites.net/api/public/procurement/supplier"
-    auth_token = generate_auth_token_adler()
+    auth_token= request.get("auth_token", "")
 
     payload = json.dumps({"supplier_name": request.get("supplier_name", "")})
     headers = {
@@ -250,7 +253,7 @@ def handle_due_date_send_data_adler(request):
     # Need to have the exact wordings of the payment terms for string matching
     # What all types of payment terms will be there?
     elif request.get("due_date", "") == "":
-        supplier_info = get_supplier_info_adler(request.get("supplier_name", ""))
+        supplier_info = get_supplier_info_adler(request)
         payment_terms = ""
         for item in supplier_info:
             payment_terms = item.get("payement_terms")
