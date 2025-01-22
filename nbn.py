@@ -1,4 +1,5 @@
 import json
+from typing import final
 import requests
 import re
 from datetime import datetime, timedelta
@@ -22,28 +23,27 @@ message thread id that the fields are present in the db for that message id or n
     data to adler function where the api to send the data to adler will be
     integrated and final structure of the response will be made.
 
-
 Pending points ->
 * What to do with the job code?
 * Amounts are to be used to cross validate a few things watch the recording.
 """
 
 
-def generate_auth_token_adler():
-    """
-    Keep this function in the frontend.
-    This function is to get the job code from adler
-    on this basis of the supplier name.
-    """
-    url = "https://adleridemo.azurewebsites.net/Token"
-    payload = "grant_type=password&username=E42_user&password=vXFAj599Xl%401"
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
-    response = requests.request("GET", url, headers=headers, data=payload)
-    response = response.json()
-    auth_token = (response.text).get("access_token")
-    return f"Bearer {auth_token}"
+# def generate_auth_token_adler():
+#     """
+#     Keep this function in the frontend.
+#     This function is to get the job code from adler
+#     on this basis of the supplier name.
+#     """
+#     url = "https://adleridemo.azurewebsites.net/Token"
+#     payload = "grant_type=password&username=E42_user&password=vXFAj599Xl%401"
+#     headers = {
+#         "Content-Type": "application/x-www-form-urlencoded",
+#     }
+#     response = requests.request("GET", url, headers=headers, data=payload)
+#     response = response.json()
+#     auth_token = (response.text).get("access_token")
+#     return f"Bearer {auth_token}"
 
 
 def mandatory_field_validation_adler(request):
@@ -58,7 +58,9 @@ def mandatory_field_validation_adler(request):
     subtotal = request.get("subtotal", "")
     supplier_name = request.get("supplier_name", "")
     total_amount = request.get("total_amount", "")
-    auth_token= request.get("auth_token", "")
+    auth_token = request.get("auth_token", "")
+
+    missing_fields_dict = {}
     if (
         not invoice_date
         and invoice_number
@@ -66,33 +68,40 @@ def mandatory_field_validation_adler(request):
         and supplier_name
         and total_amount
     ):
-        handle_due_date_send_data_adler(request)
+        everything_except_inv_date = get_currency_and_change_amounts_adler(request)
+        handle_due_date_send_data_adler(everything_except_inv_date)
     if not invoice_number:
         # Send into the exception handling
-        pass
-    if not subtotal:
-        # what to do?
-        pass
-    if not supplier_name:
-        # what to do ?
-        pass
-    if not total_amount:
-        # what to do?
-        pass
+        missing_fields_dict["invoice_number"] = "missing"
+    else:
+        missing_fields_dict["invoice_number"] = "present"
 
-    missing_fields_dict = {}
+    if not subtotal:
+        missing_fields_dict["subtotal"] = "missing"
+    else:
+        missing_fields_dict["subtotal"] = "present"
+
+    if not supplier_name:
+        missing_fields_dict["supplier_name"] = "missing"
+    else:
+        missing_fields_dict["supplier_name"] = "present"
+
+    if not total_amount:
+        missing_fields_dict["total_amount"] = "missing"
+    else:
+        missing_fields_dict["total_amount"] = "present"
 
     # Make sure all the missing fields are grouped together because those
     # missing fields will be going to the email template that will be sent
     # to the email initiator.
     print(missing_fields_dict)
-    return
+    return missing_fields_dict
 
 
 def get_currency_and_change_amounts_adler(request):
     subtotal = request.get("subtotal", "")
     total_amount = request.get("total_amount", "")
-    auth_token= request.get("auth_token", "")
+    auth_token = request.get("auth_token", "")
     currency_code_extracted = ""
 
     match = re.search(r"([A-Za-z]+)", subtotal)
@@ -129,11 +138,10 @@ def get_currency_and_change_amounts_adler(request):
 
 
 def send_data_to_adler(request):
-    """
-    **Check if two due dates are extracted from the invoice, if that's the case
-    then the invoice data needs to be send twice with both the due dates one by one.
-    """
-    return
+    resp = {}
+    # Make sure to correct the structure of the object body and safenames before
+    # sending the data.
+    return resp
 
 
 def get_job_code_info_adler(request):
@@ -143,7 +151,7 @@ def get_job_code_info_adler(request):
     """
     url = "https://adleridemo.azurewebsites.net/api/public/procurement/supplier"
     supplier_name = request.get("supplier_name", "")
-    auth_token= request.get("auth_token", "")
+    auth_token = request.get("auth_token", "")
 
     payload = json.dumps({"supplier_name": supplier_name})
     headers = {
@@ -188,7 +196,7 @@ def get_supplier_info_adler(request):
     Send the supplier name to this api to get the payment terms
     """
     url = "https://adleridemo.azurewebsites.net/api/public/procurement/supplier"
-    auth_token= request.get("auth_token", "")
+    auth_token = request.get("auth_token", "")
 
     payload = json.dumps({"supplier_name": request.get("supplier_name", "")})
     headers = {
@@ -204,12 +212,13 @@ def get_supplier_info_adler(request):
 
 
 def prepare_data_adler(request):
+    resp = {}
     """
     This function will be called inside the handle due date function just to
     make sure all the parameters are there before we use the send data func
     to finally send the data to adler.
     """
-    return
+    return resp
 
 
 def handle_due_date_send_data_adler(request):
@@ -275,6 +284,9 @@ def handle_due_date_send_data_adler(request):
 
     # More than 1 due date extracted
     date_list = []
+    # List to store multiple response for API calls incase when more than 1
+    # due date was extracted.
+    final_response = []
     payload = request
     # What's the separator symbol for multiple due dates comma or space?
     if len(due_date.split(",")) > 1:
@@ -286,7 +298,69 @@ def handle_due_date_send_data_adler(request):
 
         for i in range(len(date_list)):
             payload["due_date"] = date_list[i]
-            send_data_to_adler(payload)
+            final_response.append(send_data_to_adler(payload))
+        return final_response
     else:
-        send_data_to_adler(payload)
-    return
+        final_response.append(send_data_to_adler(payload))
+    return final_response
+
+
+# MAIN DJANGO ENTRY POINT VIEW
+def main_api_view_adler(request):
+    req_data = {}
+    req_data["invoice_number"] = request.get("invoice_number", "")
+    req_data["invoice_date"] = request.get("invoice_date", "")
+    req_data["subtotal"] = request.get("subtotal", "")
+    req_data["supplier_name"] = request.get("supplier_name", "")
+    req_data["total_amount"] = request.get("total_amount", "")
+    req_data["auth_token"] = request.get("auth_token", "")
+
+    # send data to validation
+
+    missing_list = []
+    missing_dict = {}
+    missing_fields = mandatory_field_validation_adler(req_data)
+    # Check if missing fields are present
+    for k, v in missing_fields.items():
+        if k[v] == "missing":
+            missing_list.append(k)
+            # Think what needs to be done in this
+
+    if len(missing_list) != 0:
+        """
+        Store whatever fields are present in the database and return this
+        function so that we can know what fields are missing in the frontend
+        to be filled in the email template.
+        """
+        #This means parameters are missing
+        #Create and send template for the missing field
+        print(missing_list)
+        missing_dict["missing_fields"] = missing_list
+        return missing_dict
+
+    if len(missing_list) == 0:
+        """
+        Store the fields in the DB with the message ID and continue the process.
+        and push the data to adler.
+        (Happy path)
+        """
+        # All keys are present
+        req_data = get_currency_and_change_amounts_adler(req_data)
+        supplier_info = get_supplier_info_adler(req_data)
+        job_code_info = get_job_code_info_adler(req_data)
+
+        # Write the part to handle the amount combinations which are used for calc.
+
+        final_api_response_to_send_data = handle_due_date_send_data_adler(req_data)
+
+
+
+
+
+
+
+
+
+
+
+
