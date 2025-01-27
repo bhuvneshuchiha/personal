@@ -166,84 +166,198 @@ def prepare_and_send_data_to_adler(request):
     # sending the data.
     return resp
 
-
 def get_job_code_info_adler(request):
     """
-    If job code is not present in the API then -> manual intervention
+    Handles job code retrieval and processing for Adler ERP.
 
-    the supplier name will come from the icr extraction and that will be pass
-    onto this function.As we need to send the job code to the adler ERP at the
-    end. From job code you will get service type and rate for each service type.
-
-    1-> Single job code single service type -> Whatever servuce type and job
-    code you get just push it to adler as it is.
-
-    2-> Single job code multiple service types -> Match the total amount
-    extracted with the total amount of that particular service type, if the
-    amount matches then post it to the adler.
-
-    3-> If the total amount is getting matched with the amounts from multiple
-    service types then post the job code with all the service types used for
-    amount matching.
-
-    4-> If the invoice amount is less than the amount of service type amounts
-    then find the combinations of the service types which we can summed up to be
-    equal to that amount.
-
-    5-> If no combination matches or the invoice amount is more than the all
-    serivce type amounts summed together, then send for manual intervention.
+    Logic:
+    1. Single job code with a single service type: Send as-is to Adler.
+    2. Single job code with multiple service types: Match total amount
+       extracted with the total for that service type and send if matched.
+    3. Multiple service types match the invoice amount: Post with all matching
+       service types.
+    4. Invoice amount is less than total service type amounts: Find combinations
+       of service types that sum up to the invoice amount.
+    5. No matching combination or invoice amount exceeds all sums: Send for
+       manual intervention.
+    6. Multiple job codes for a supplier: Send for manual intervention.
     """
 
-    url = "https://adleridemo.azurewebsites.net/api/public/procurement/supplier"
     supplier_name = request.get("supplier_name", "")
     auth_token = request.get("auth_token", "")
+    invoice_amount = float(request.get("invoice_amount", 0))
 
+    url = "https://adleridemo.azurewebsites.net/api/public/accounts/supplier_jobs"
     payload = json.dumps({"supplier_name": supplier_name})
     headers = {
         "Content-Type": "application/json",
-        "Authorization": auth_token,
+        "Authorization": f"Bearer {auth_token}",
         "api_key": "HNG37484=",
     }
 
     response = requests.request("GET", url, headers=headers, data=payload)
-    print(response.text)
-    response = response.json()
+    if response.status_code != 200:
+        request["func_resp_get_job_code_info_adler"] = "No data found"
+        return request
 
-    response_list = response.text.get("supplier", "")
-    for item in response_list:
-        for key, val in item.items():
-            if key == "supplier_name" and val == supplier_name:
-                """write the logic to fetch the job code if the supplier name
-                was matched."""
+    supplier_jobs = response.json().get("supplier_jobs", [])
 
-                url = "https://adleridemo.azurewebsites.net/api/public/\
-                    accounts/supplier_jobs"
+    if not supplier_jobs:
+        request["func_resp_get_job_code_info_adler"] = "No jobs found for the supplier."
+        return request
 
-                payload = json.dumps({"supplier_name": supplier_name})
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": auth_token,
-                    "api_key": "HNG37484=",
-                }
+    # Grouping jobs by job_code
+    job_code_groups = {}
+    for job in supplier_jobs:
+        job_code = job["job_code"]
+        amount = float(job["amount"])
+        service_type = job["service_type"]
 
-                response = requests.request("GET", url, headers=headers, data=payload)
+        if job_code not in job_code_groups:
+            job_code_groups[job_code] = {
+                "service_types": [],
+                "total_amount": 0,
+            }
+        job_code_groups[job_code]["service_types"].append(service_type)
+        job_code_groups[job_code]["total_amount"] += amount
 
-                print(response.text)
-                response = response.json()
-                supplier_jobs = response.get("supplier_jobs", [])
-                # Need to add job code to this request dict as well
-                request["func_resp_get_job_code_info_adler"] = supplier_jobs
-                return request
-            else:
-                request["func_resp_get_job_code_info_adler"] = "No data found"
-                return request
+    # Check for multiple job codes for a supplier
+    if len(job_code_groups) > 1:
+        request["func_resp_get_job_code_info_adler"] = "Manual intervention required: Multiple job codes."
+        return request
+
+    # Single job code logic
+    single_job_code, job_data = next(iter(job_code_groups.items()))
+    total_amount = job_data["total_amount"]
+    service_types = job_data["service_types"]
+
+    if len(service_types) == 1:
+        # Single service type
+        if total_amount == invoice_amount:
+            request["func_resp_get_job_code_info_adler"] = {
+                "job_code": single_job_code,
+                "service_types": service_types,
+            }
+            return request
+        else:
+            request["func_resp_get_job_code_info_adler"] = "Manual intervention required: Amount mismatch."
+            return request
+
+    # Multiple service types logic
+    if total_amount == invoice_amount:
+        # Exact match with multiple service types
+        request["func_resp_get_job_code_info_adler"] = {
+            "job_code": single_job_code,
+            "service_types": service_types,
+        }
+        return request
+    elif total_amount > invoice_amount:
+        # Find combinations of service types matching the invoice amount
+        from itertools import combinations
+
+        possible_matches = []
+        for r in range(1, len(service_types) + 1):
+            for combo in combinations(service_types, r):
+                combo_amount = sum(
+                    float(job["amount"])
+                    for job in supplier_jobs
+                    if job["service_type"] in combo
+                )
+                if combo_amount == invoice_amount:
+                    possible_matches.append(combo)
+
+        if possible_matches:
+            request["func_resp_get_job_code_info_adler"] = {
+                "job_code": single_job_code,
+                "matching_combinations": possible_matches,
+            }
+            return request
+
+    # If no match found or invoice amount exceeds total
+    request["func_resp_get_job_code_info_adler"] = "Manual intervention required."
+    return request
+
+
+# def get_job_code_info_adler(request):
+#     """
+#     If job code is not present in the API then -> manual intervention
+#
+#     the supplier name will come from the icr extraction and that will be pass
+#     onto this function.As we need to send the job code to the adler ERP at the
+#     end. From job code you will get service type and rate for each service type.
+#
+#     1-> Single job code single service type -> Whatever service type and job
+#     code you get just push it to adler as it is.
+#
+#     2-> Single job code multiple service types -> Match the total amount
+#     extracted with the total amount of that particular service type, if the
+#     amount matches then post it to the adler.
+#
+#     3-> If the total amount is getting matched with the amounts from multiple
+#     service types then post the job code with all the service types used for
+#     amount matching.
+#
+#     4-> If the invoice amount is less than the amount of service type amounts
+#     then find the combinations of the service types which we can summed up to be
+#     equal to that amount.
+#
+#     5-> If no combination matches or the invoice amount is more than the all
+#     serivce type amounts summed together, then send for manual intervention.
+#
+#     *** If for a supplier name, there are multiple job codes, then send that
+#     invoice for manual intervention. ***
+#     """
+#
+#     # url = "https://adleridemo.azurewebsites.net/api/public/procurement/supplier"
+#     # supplier_name = request.get("supplier_name", "")
+#     # auth_token = request.get("auth_token", "")
+#     #
+#     # payload = json.dumps({"supplier_name": supplier_name})
+#     # headers = {
+#     #     "Content-Type": "application/json",
+#     #     "Authorization": auth_token,
+#     #     "api_key": "HNG37484=",
+#     # }
+#     #
+#     # response = requests.request("GET", url, headers=headers, data=payload)
+#     # print(response.text)
+#     # response = response.json()
+#     #
+#     # response_list = response.text.get("supplier", "")
+#     # for item in response_list:
+#     #     for key, val in item.items():
+#     #         if key == "supplier_name" and val == supplier_name:
+#     #             """write the logic to fetch the job code if the supplier name
+#     #             was matched."""
+#     #
+#     supplier_name = request.get("supplier_name", "")
+#     auth_token = request.get("auth_token", "")
+#     url = "https://adleridemo.azurewebsites.net/api/public/\
+#         accounts/supplier_jobs"
+#
+#     payload = json.dumps({"supplier_name": supplier_name})
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Authorization": f'Bearer {auth_token}',
+#         "api_key": "HNG37484=",
+#     }
+#
+#     response = requests.request("GET", url, headers=headers, data=payload)
+#     if response.status_code == 200:
+#         response = response.json()
+#         supplier_jobs = response.get("supplier_jobs", [])
+#         # Need to add job code to this request dict as well
+#         request["func_resp_get_job_code_info_adler"] = supplier_jobs
+#         return request
+#     else:
+#         request["func_resp_get_job_code_info_adler"] = "No data found"
+#         return request
 
 
 def get_supplier_info_adler(request):
     """
     Send the supplier name to this api to get the payment terms
     """
-    supplier_name_match = False
     url = "https://adleridemo.azurewebsites.net/api/public/procurement/supplier"
     auth_token = request.get("auth_token", "")
 
