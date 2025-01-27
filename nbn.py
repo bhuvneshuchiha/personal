@@ -4,7 +4,7 @@ import requests
 import re
 from datetime import datetime, timedelta
 
-#TODO: -> May be you can add a key like response["resp_{func_name}"] = function
+# TODO: -> May be you can add a key like response["resp_{func_name}"] = function
 # passed ? function failed so that in the front end we can have entities to
 # know the response of each of these function.
 
@@ -65,15 +65,21 @@ def mandatory_field_validation_adler(request):
     auth_token = request.get("auth_token", "")
 
     missing_fields_dict = {}
-    if (
-        not invoice_date
-        and invoice_number
-        and subtotal
-        and supplier_name
-        and total_amount
-    ):
-        everything_except_inv_date = get_currency_and_change_amounts_adler(request)
-        handle_due_date_send_data_adler(everything_except_inv_date)
+    # if (
+    #     not invoice_date
+    #     and invoice_number
+    #     and subtotal
+    #     and supplier_name
+    #     and total_amount
+    # ):
+        # everything_except_inv_date = get_currency_and_change_amounts_adler(request)
+        # handle_due_date_send_data_adler(everything_except_inv_date)
+
+    if not invoice_date:
+        missing_fields_dict["invoice_date"] = "missing"
+    else:
+        missing_fields_dict["invoice_date"] = "present"
+
 
     if not invoice_number:
         # Send into the exception handling
@@ -81,18 +87,15 @@ def mandatory_field_validation_adler(request):
     else:
         missing_fields_dict["invoice_number"] = "present"
 
-
     if not subtotal:
         missing_fields_dict["subtotal"] = "missing"
     else:
         missing_fields_dict["subtotal"] = "present"
 
-
     if not supplier_name:
         missing_fields_dict["supplier_name"] = "missing"
     else:
         missing_fields_dict["supplier_name"] = "present"
-
 
     if not total_amount:
         missing_fields_dict["total_amount"] = "missing"
@@ -106,7 +109,9 @@ def mandatory_field_validation_adler(request):
     if len(missing_fields_dict.keys()) == 5:
         request["func_resp_mandatory_field_validation"] = "All fields present"
     else:
-        request["func_resp_mandatory_field_validation"] = "1 or more fields might be missing"
+        request["func_resp_mandatory_field_validation"] = (
+            "1 or more fields might be missing"
+        )
 
     return request
 
@@ -226,7 +231,7 @@ def get_job_code_info_adler(request):
                 print(response.text)
                 response = response.json()
                 supplier_jobs = response.get("supplier_jobs", [])
-                #Need to add job code to this request dict as well
+                # Need to add job code to this request dict as well
                 request["func_resp_get_job_code_info_adler"] = supplier_jobs
                 return request
             else:
