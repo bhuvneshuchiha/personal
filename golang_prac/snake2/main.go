@@ -15,7 +15,6 @@ func main() {
 	go Grid.CaptureKeypresses(logger)
 	go Grid.MoveSnake(grid, quit, logger)
 
-	<- quit
+	<-quit
 
 }
-

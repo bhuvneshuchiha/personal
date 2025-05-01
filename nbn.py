@@ -106,12 +106,12 @@ def mandatory_field_validation_adler(request):
     # Make sure all the missing fields are grouped together because those
     # missing fields will be going to the email template that will be sent
     # to the email initiator.
-    if len(missing_fields_dict.keys()) == 5:
-        request["func_resp_mandatory_field_validation"] = "All fields present"
-    else:
+    if "missing" in missing_fields_dict.values():
         request["func_resp_mandatory_field_validation"] = (
             "1 or more fields might be missing"
         )
+    else:
+        request["func_resp_mandatory_field_validation"] = "All fields present"
 
     return request
 

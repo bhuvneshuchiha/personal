@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/bhuvneshuchiha/devdash-backend/server/tasks"
@@ -41,7 +42,7 @@ func (d *DatabaseObj) GetTask() ([]tasks.Task, error){
 	rows, err := d.DB.Query(getQuery)
 
 	if err != nil {
-		fmt.Println("Coudnt get the tasks")
+		fmt.Println("Couldnt get the tasks")
 		return nil,err
 	}
 	defer rows.Close()
@@ -74,6 +75,18 @@ func (d *DatabaseObj) RemoveTasks(id int) error {
 }
 
 
+func (d *DatabaseObj) GetTaskById(id int) (*sql.Rows, error) {
+	getTaskById := `
+	select * from devdash where id = $1`
+
+	tasksById, err := d.DB.Query(getTaskById, id)
+	if err != nil {
+		fmt.Println("Couldnt get the task by ID")
+		return nil, err
+	}else {
+		return tasksById, nil
+	}
+}
 
 
 

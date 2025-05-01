@@ -1,0 +1,15 @@
+/Users/bhuvnesh/personal/csharp___/bin/Debug/net9.0/csharp___
+/Users/bhuvnesh/personal/csharp___/bin/Debug/net9.0/csharp___.deps.json
+/Users/bhuvnesh/personal/csharp___/bin/Debug/net9.0/csharp___.runtimeconfig.json
+/Users/bhuvnesh/personal/csharp___/bin/Debug/net9.0/csharp___.dll
+/Users/bhuvnesh/personal/csharp___/bin/Debug/net9.0/csharp___.pdb
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/csharp___.GeneratedMSBuildEditorConfig.editorconfig
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/csharp___.AssemblyInfoInputs.cache
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/csharp___.AssemblyInfo.cs
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/csharp___.csproj.CoreCompileInputs.cache
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/csharp___.sourcelink.json
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/csharp___.dll
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/refint/csharp___.dll
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/csharp___.pdb
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/csharp___.genruntimeconfig.cache
+/Users/bhuvnesh/personal/csharp___/obj/Debug/net9.0/ref/csharp___.dll

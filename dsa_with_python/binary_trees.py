@@ -1,3 +1,6 @@
+from types import CoroutineType
+
+
 class TreeNode:
     def __init__(self, val, left = None, right = None):
         self.val = val
@@ -53,7 +56,4 @@ print("XXXXXXXXX")
 post_order(A)
 print("XXXXXXXXX")
 inorder(A)
-
-
-
 
