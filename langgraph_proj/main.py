@@ -10,6 +10,7 @@ from langgraph.graph import StateGraph, END, START
 from langgraph.graph.message import add_messages
 
 
+
 load_dotenv()
 client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
@@ -25,6 +26,7 @@ class State(TypedDict):
     document_uploaded_paths: List[str]
     document_processed: bool
     extracted_fields: List[Dict]
+    state_updated: bool
     payable_amount_calculated: float
     meeting_scheduled: bool
 
@@ -179,64 +181,91 @@ def document_uploader(state: State):
     updated_state["document_uploaded_paths"] = paths
     return updated_state
 
-#Document extractor
-# def extracted_fields_processor(state: State):
-#     updated_state = dict(state)
-#     extracted_results = []
-#
-#     api_endpoint = "http://localhost:8000/extract"
-#
-#     import pdb
-#     pdb.set_trace()
-#     for path in updated_state["document_uploaded_paths"]:
-#         try:
-#             with open(path, "rb") as f:
-#                 files = {"file": f}
-#                 response = requests.post(api_endpoint, files=files)
-#                 if response.status_code == 200:
-#                     extracted_results.append(response.json())
-#                 else:
-#                     extracted_results.append({"error": f"Failed to extract from {path}, status code {response.status_code}"})
-#         except Exception as e:
-#             extracted_results.append({"error": f"Exception for {path}: {str(e)}"})
-#
-#     updated_state["document_processed"] = True
-#     updated_state["extracted_fields"] = extracted_results
-#     return updated_state
 
 def extracted_fields_processor(state: State):
     updated_state = dict(state)
     extracted_results = []
 
-    api_endpoint = "https://mmc.lightinfosys.com/icrv2/inbound/4/?token=9879c248-38b9-4bea-86bd-f774f6a206ff"
+    api_endpoint = "https://bhuvnesh.lightinfosys.com/icrv2/extract-invoice"
 
     import pdb
     pdb.set_trace()
+    final_dict = {}
+    data_store = []
     for path in updated_state["document_uploaded_paths"]:
         try:
             with open(path, "rb") as f:
                 files = {
-                    'file_attachment': ('file', f, 'application/octet-stream')
+                    'file': ('file', f, 'application/octet-stream')
                 }
                 payload = {
-                    'model': 'templateless',
-                    'detail': 'true'
                 }
                 response = requests.post(api_endpoint, data=payload, files=files)
 
                 if response.status_code == 200:
-                    extracted_results.append(response.json())
+                    extracted_results=response.json()
                 else:
-                    extracted_results.append({
+                    extracted_results={
                         "error": f"Failed to extract from {path}, status code {response.status_code}, response: {response.text}"
-                    })
+                    }
         except Exception as e:
-            extracted_results.append({
+            extracted_results={
                 "error": f"Exception for {path}: {str(e)}"
-            })
+            }
+
+        customer_address = extracted_results['data']['CustomerAddress']['value']
+        customer_recipient_name = extracted_results['data']['CustomerAddressRecipient']['value']
+        total_amount_str = extracted_results['data']['tl_table']['Amount'][0]
+        total_amount = total_amount_str.replace(',', '')
+        total_amount = float(total_amount.replace('.', ''))
+        payable_amount_calculated = 0.35 * float(total_amount)
+        final_dict["customer_address"] = customer_address
+        final_dict["customer_recipient_name"] = customer_recipient_name
+        final_dict["total_amount"] = total_amount
+        final_dict["payable_amount_calculated"] = payable_amount_calculated
+        data_store.append(final_dict)
+
 
     updated_state["document_processed"] = True
-    updated_state["extracted_fields"] = extracted_results
+    updated_state["extracted_fields"] = data_store
+    return updated_state
+
+
+def state_updater(state: State):
+    updated_state = dict(state)
+
+    formatted_state = "\n".join([f"{key}: {value}" for key, value in updated_state.items()])
+
+    while True:
+        print("Assistant: Here is the current state:\n")
+        print(formatted_state)
+        print("\nDo you want to update any field? (yes/no)")
+
+        user_input = input("User: ").strip().lower()
+
+        if user_input == "yes":
+            print("Assistant: Which field do you want to update?")
+            field_to_update = input("User: ").strip()
+
+            if field_to_update in updated_state:
+                print(f"Assistant: What is the new value for {field_to_update}?")
+                new_value = input("User: ").strip()
+
+                updated_state[field_to_update] = new_value
+                print(f"Assistant: {field_to_update} has been updated to {new_value}.")
+
+                continue_choice = input("User: Do you want to update another field? (yes/no)").strip().lower()
+                if continue_choice == "no":
+                    break
+            else:
+                print(f"Assistant: {field_to_update} is not a valid field. Please choose from the list.")
+                continue
+        elif user_input == "no":
+            updated_state["state_updated"]= True
+            break
+        else:
+            print("Assistant: I didn't understand. 'yes' or 'no' bol bhadwe.")
+
     return updated_state
 
 
@@ -245,23 +274,23 @@ def should_continue(state: State) -> str:
         return "entity_collection"
     if not state["document_uploaded"]:
         return "document_uploader"
-    return END
-
-
-def should_continue_after_upload(state: State) -> str:
     if not state["document_processed"]:
         return "extracted_fields_processor"
+    if "state_updated" not in state or not state.get("state_updated", False):
+        return "state_updater"
     return END
+
 
 graph_builder.add_node("entity_collection", entity_collection)
 graph_builder.add_node("document_uploader", document_uploader)
 graph_builder.add_node("extracted_fields_processor", extracted_fields_processor)
+graph_builder.add_node("state_updater", state_updater)
 graph_builder.set_entry_point("entity_collection")
 
 graph_builder.add_conditional_edges("entity_collection", should_continue)
-graph_builder.add_conditional_edges("document_uploader", should_continue_after_upload)
-# graph_builder.add_edge("document_uploader", END)
-graph_builder.add_edge("extracted_fields_processor", END)
+graph_builder.add_conditional_edges("document_uploader", should_continue)
+graph_builder.add_conditional_edges("extracted_fields_processor", should_continue)
+graph_builder.add_conditional_edges("state_updater", should_continue)
 
 
 graph = graph_builder.compile()
@@ -274,6 +303,7 @@ initial_state: State = {
     "document_uploaded_paths": [],
     "document_processed": False,
     "extracted_fields": [],
+    "state_updated": False,
     "payable_amount_calculated": 0.00,
     "meeting_scheduled": False,
 }
