@@ -40,21 +40,21 @@ func (h *Handler) ListTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Println("Inside the handler")
-	getTasksFromDb, err := h.DB.GetTask()
+	getTasksFromDb, err := h.DB.GetTask();
 	if err != nil {
 		fmt.Println("Failed to retrieve the tasks")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-	}else {
-		mp := make(map[string]any)
-		mp["message"] = "Data fetched successfully"
-		mp["tasks"] = getTasksFromDb
-		pretty, e := json.MarshalIndent(getTasksFromDb, "","")
-		if e != nil {
-			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		}
-		w.Write(pretty)
 	}
+	mp := make(map[string]any)
+	mp["message"] = "Data fetched successfully"
+	mp["tasks"] = getTasksFromDb
+	pretty, e := json.MarshalIndent(getTasksFromDb, "","")
+	if e != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+	w.Write(pretty)
 }
 
 func (h *Handler) UpdateTaskStatusHandler(w http.ResponseWriter, r *http.Request) {
