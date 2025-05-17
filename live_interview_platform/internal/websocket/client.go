@@ -8,7 +8,7 @@ import (
 
 type Client struct {
 	Conn *websocket.Conn
-	Send chan []byte
+	Send chan *Message
 	Room *Room
 	Username string
 	ID uuid.UUID
