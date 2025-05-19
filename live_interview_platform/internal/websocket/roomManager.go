@@ -45,6 +45,7 @@ func (r *RoomManager) CreateRoom() string {
 	return roomInstance.ID.String()
 }
 
+<<<<<<< HEAD
 
 func (r *RoomManager) DeleteRoom(roomId string) bool {
 
@@ -66,3 +67,4 @@ func (r *RoomManager) UnregisterClient(roomId string, client *Client) {
 
 func (r *RoomManager) BroadcastToRoom(roomId string, message *Message) {
 }
+>>>>>>> d06e73c (check)
