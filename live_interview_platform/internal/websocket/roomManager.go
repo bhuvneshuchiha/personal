@@ -57,11 +57,47 @@ func (r *RoomManager) DeleteRoom(roomId string) bool {
 	return false
 }
 
-func (r *RoomManager) RegisterClient(roomId string, client *Client) {
+func (r *RoomManager) RegisterClient(roomId string, client *Client) string {
+
+	r.Mu.Lock()
+	defer r.Mu.Unlock()
+
+	if roomId != "" {
+		roomInst := r.Rooms[roomId]
+		roomInst.Clients[client] = true
+		return "Client added to the room"
+	}
+	return "Room Id does not exist"
 }
 
-func (r *RoomManager) UnregisterClient(roomId string, client *Client) {
+func (r *RoomManager) UnregisterClient(roomId string, client *Client) string {
+
+	r.Mu.Lock()
+	defer r.Mu.Unlock()
+
+	if roomId != "" {
+		roomInst := r.Rooms[roomId]
+		if roomInst != nil {
+			delete(roomInst.Clients, client)
+			return "Successfully unregistered the client"
+		}
+	}
+	return "Room ID does not exist"
 }
 
 func (r *RoomManager) BroadcastToRoom(roomId string, message *Message) {
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
