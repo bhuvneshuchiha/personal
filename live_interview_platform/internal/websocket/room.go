@@ -18,7 +18,7 @@ type Room struct {
 	Register chan *Client
 	Unregister chan *Client
 	CodeState string
-	Mutex sync.Mutex
+	Mu sync.Mutex
 
 }
 

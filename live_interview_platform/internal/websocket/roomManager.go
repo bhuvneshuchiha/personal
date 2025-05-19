@@ -1,45 +1,62 @@
 package websocket
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
-var mu sync.Mutex
 
 type RoomManager struct {
 	Rooms map[string]*Room
-	Mutex sync.Mutex
+	Mu sync.Mutex
 }
 
 
 func (r *RoomManager) CreateRoom() string {
-	messageCh := make(chan *Message)
-	clientCh := make(chan *Client)
-	clients := make(map[*Client]bool)
-
 	roomInstance := Room {
 		ID: uuid.New(),
-		Clients: clients,
-		Broadcast: messageCh,
-		Register: clientCh,
-		Unregister: clientCh,
+		Clients: make(map[*Client]bool),
+		Broadcast: make(chan *Message),
+		Register: make(chan *Client),
+		Unregister: make(chan *Client),
 		CodeState: "",
-		Mutex: mu,
+		Mu: sync.Mutex{},
 	}
-
-	roomInstance.Mutex.Lock()
+	//Add the roomInstance to the roomManager
+	r.Mu.Lock()
 	r.Rooms[roomInstance.ID.String()] = &roomInstance
-	roomInstance.Mutex.Unlock()
+	r.Mu.Unlock()
+
+	go func() {
+		for {
+			select {
+			case <- roomInstance.Register:
+				fmt.Println("Someone added to the room")
+			case <- roomInstance.Unregister:
+				fmt.Println("Someone left the room")
+			case val :=  <- roomInstance.Broadcast:
+				fmt.Println("Message received", val)
+			}
+		}
+	}()
 
 	return roomInstance.ID.String()
 }
 
-
 func (r *RoomManager) GetRoom() {
 }
 
-
 func (r *RoomManager) DeleteRoom() {
 }
+
+func (r *RoomManager) RegisterClient() {
+}
+
+func (r *RoomManager) UnregisterClient() {
+}
+
+func (r *RoomManager) BroadcastToRoom() {
+}
+
