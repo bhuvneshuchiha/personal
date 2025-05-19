@@ -45,10 +45,16 @@ func (r *RoomManager) CreateRoom() string {
 	return roomInstance.ID.String()
 }
 
-func (r *RoomManager) GetRoom() {
-}
+func (r *RoomManager) DeleteRoom(roomId string) bool {
 
-func (r *RoomManager) DeleteRoom() {
+	r.Mu.Lock()
+	defer r.Mu.Unlock()
+
+	if r.Rooms[roomId] != nil {
+		delete(r.Rooms, roomId)
+		return true
+	}
+	return false
 }
 
 func (r *RoomManager) RegisterClient() {
