@@ -29,15 +29,18 @@ func (r *RoomManager) CreateRoom() string {
 	r.Rooms[roomInstance.ID.String()] = &roomInstance
 	r.Mu.Unlock()
 
+
 	go func() {
 		for {
 			select {
-			case <- roomInstance.Register:
-				fmt.Println("Someone added to the room")
-			case <- roomInstance.Unregister:
-				fmt.Println("Someone left the room")
-			case val :=  <- roomInstance.Broadcast:
-				fmt.Println("Message received", val)
+			case val :=  <- roomInstance.Register:
+				roomInstance.Clients[val] = true
+			case val := <- roomInstance.Unregister:
+				delete(roomInstance.Clients, val)
+			case msg :=  <- roomInstance.Broadcast:
+				for client := range roomInstance.Clients {
+					client.Send <- msg
+				}
 			}
 		}
 	}()
@@ -60,11 +63,13 @@ func (r *RoomManager) DeleteRoom(roomId string) bool {
 func (r *RoomManager) RegisterClient(roomId string, client *Client) string {
 
 	r.Mu.Lock()
-	defer r.Mu.Unlock()
+	roomInst := r.Rooms[roomId]
+	r.Mu.Unlock()
 
-	if roomId != "" {
-		roomInst := r.Rooms[roomId]
-		roomInst.Clients[client] = true
+	if roomInst != nil {
+		go func() {
+			roomInst.Register <- client
+		}()
 		return "Client added to the room"
 	}
 	return "Room Id does not exist"
@@ -73,14 +78,14 @@ func (r *RoomManager) RegisterClient(roomId string, client *Client) string {
 func (r *RoomManager) UnregisterClient(roomId string, client *Client) string {
 
 	r.Mu.Lock()
-	defer r.Mu.Unlock()
+	roomInst := r.Rooms[roomId]
+	r.Mu.Unlock()
 
-	if roomId != "" {
-		roomInst := r.Rooms[roomId]
-		if roomInst != nil {
-			delete(roomInst.Clients, client)
-			return "Successfully unregistered the client"
-		}
+	if roomInst != nil {
+		go func() {
+			roomInst.Unregister <- client
+		}()
+		return "Successfully unregistered the client"
 	}
 	return "Room ID does not exist"
 }
@@ -88,28 +93,16 @@ func (r *RoomManager) UnregisterClient(roomId string, client *Client) string {
 func (r *RoomManager) BroadcastToRoom(roomId string, message *Message) string {
 
 	r.Mu.Lock()
-	defer r.Mu.Unlock()
+	roomInst := r.Rooms[roomId]
+	r.Mu.Unlock()
 
-	if roomId != "" {
-		roomInst := r.Rooms[roomId]
-		if roomInst != nil {
+	if roomInst != nil {
+		go func() {
 			roomInst.Broadcast <- message
-			return "Message added to broadcast queue."
-		}
+		}()
+		return "Message added to broadcast queue."
 	}
 	return "Room Id does not exist"
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
