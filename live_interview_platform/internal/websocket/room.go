@@ -7,8 +7,8 @@ import (
 )
 
 type Message struct {
-	messageString string
-	sender string
+	MessageString string
+	Sender string
 }
 
 type Room struct {
