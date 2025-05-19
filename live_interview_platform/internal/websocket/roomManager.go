@@ -45,18 +45,18 @@ func (r *RoomManager) CreateRoom() string {
 	return roomInstance.ID.String()
 }
 
-func (r *RoomManager) GetRoom() {
+func (r *RoomManager) GetRoom(roomId string) {
 }
 
-func (r *RoomManager) DeleteRoom() {
+func (r *RoomManager) DeleteRoom(roomId string) {
 }
 
-func (r *RoomManager) RegisterClient() {
+func (r *RoomManager) RegisterClient(roomId string, client *Client) {
 }
 
-func (r *RoomManager) UnregisterClient() {
+func (r *RoomManager) UnregisterClient(roomId string, client *Client) {
 }
 
-func (r *RoomManager) BroadcastToRoom() {
+func (r *RoomManager) BroadcastToRoom(roomId string, message *Message) {
 }
 
