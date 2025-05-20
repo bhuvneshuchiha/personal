@@ -17,7 +17,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var roomManager = RoomManager {
+var RoomManagerInstance = &RoomManager {
 	Rooms: make(map[string]*Room),
 	Mu: sync.Mutex{},
 
@@ -58,9 +58,9 @@ func HandleWebsocket(c *gin.Context) {
 
 	//get the room from the room after creating the room manager
 	// I will create the room manager in a separate route.
-	roomManager.Mu.Lock()
-	room , ok := roomManager.Rooms[roomId]
-	roomManager.Mu.Unlock()
+	RoomManagerInstance.Mu.Lock()
+	room , ok := RoomManagerInstance.Rooms[roomId]
+	RoomManagerInstance.Mu.Unlock()
 
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H {

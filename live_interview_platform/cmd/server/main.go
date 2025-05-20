@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/bhuvneshuchiha/live_interview_platform/internal/websocket"
 	"net/http"
+
+	"github.com/bhuvneshuchiha/live_interview_platform/internal/executor"
+	"github.com/bhuvneshuchiha/live_interview_platform/internal/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,6 +17,7 @@ func main() {
 		})
 	})
 	r.GET("/ws", websocket.HandleWebsocket)
+	r.POST("/create-room", executor.CreateRoomHandler)
 
 	r.Run()
 }
