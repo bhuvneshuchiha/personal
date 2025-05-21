@@ -14,27 +14,18 @@ func CreateRoomHandler(c *gin.Context) {
 	roomId := rm.CreateRoom()
 
 	if roomId == "" {
-		c.JSON(http.StatusInternalServerError, gin.H {
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create a room",
-			"roomId" : roomId,
+			"roomId":  roomId,
 		})
 		return
 	}
 
 	if roomId != "" {
-		c.JSON(http.StatusCreated, gin.H {
+		c.JSON(http.StatusCreated, gin.H{
 			"message": "Room has been created successfully",
-			"roomID" : roomId,
+			"roomID":  roomId,
 		})
 		return
 	}
 }
-
-
-
-
-
-
-
-
-
