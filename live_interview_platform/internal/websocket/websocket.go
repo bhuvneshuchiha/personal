@@ -10,30 +10,31 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//Declare an upgrader
+// Declare an upgrader
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
 }
 
-var RoomManagerInstance = &RoomManager {
+var RoomManagerInstance = &RoomManager{
 	Rooms: make(map[string]*Room),
-	Mu: sync.Mutex{},
-
+	Mu:    sync.Mutex{},
 }
 
+//for global access
+var Wg = &sync.WaitGroup{}
 
-
-//Define an endpoint handler for websocket connections
+// Define an endpoint handler for websocket connections
 func HandleWebsocket(c *gin.Context) {
+
 
 	roomId := c.Query("roomId")
 	// check if the room ID exists else return
 	if roomId == "" {
-		c.JSON(http.StatusBadRequest, gin.H {
+		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "roomId was invalid",
-			"status": 404,
+			"status":  404,
 		})
 		return
 	}
@@ -46,24 +47,23 @@ func HandleWebsocket(c *gin.Context) {
 	defer ws.Close()
 
 	// created the client instance
-	ClientInstance := &Client {
-		Conn: ws,
-		Send: make(chan *Message),
-		Room: &Room{},
+	ClientInstance := &Client{
+		Conn:     ws,
+		Send:     make(chan *Message),
+		Room:     &Room{},
 		Username: "",
-		ID: uuid.New(),
-		Role:"",
+		ID:       uuid.New(),
+		Role:     "",
 	}
-
 
 	//get the room from the room after creating the room manager
 	// I will create the room manager in a separate route.
 	RoomManagerInstance.Mu.Lock()
-	room , ok := RoomManagerInstance.Rooms[roomId]
+	room, ok := RoomManagerInstance.Rooms[roomId]
 	RoomManagerInstance.Mu.Unlock()
 
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H {
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Internal Server issue",
 		})
 		return
@@ -72,30 +72,14 @@ func HandleWebsocket(c *gin.Context) {
 	// Added the room to the client
 	ClientInstance.Room = room
 	// Added the client to the room
-	room.Register <- ClientInstance
+	RoomManagerInstance.RegisterClient(roomId, ClientInstance)
 
-
-	go func() {
-		for {
-			_, p, err := ws.ReadMessage()
-			if err != nil {
-				log.Println("read error:", err)
-				return
-			}
-			msg := &Message{
-				MessageString: string(p),
-				Sender: "client",
-			}
-			// send to room for broadcast
-			ClientInstance.Room.Broadcast <- msg
-		}
-	}()
-
-	go func() {
-
+	Wg.Add(1)
+	go func(rm *RoomManager) {
+		defer Wg.Done()
 		defer func() {
-			room.Unregister <- ClientInstance
-			close(ClientInstance.Send)
+			rm.UnregisterClient(roomId, ClientInstance)
+			// close(ClientInstance.Send)
 		}()
 
 		for msg := range ClientInstance.Send {
@@ -105,21 +89,25 @@ func HandleWebsocket(c *gin.Context) {
 				return
 			}
 		}
-	}()
+	}(RoomManagerInstance)
+
+	Wg.Add(1)
+	go func(rm *RoomManager) {
+		defer Wg.Done()
+		for {
+			_, p, err := ws.ReadMessage()
+			if err != nil {
+				log.Println("read error:", err)
+				return
+			}
+			msg := &Message{
+				MessageString: string(p),
+				Sender:        "client",
+			}
+			// send to room for broadcast
+			rm.BroadcastToRoom(roomId, msg)
+		}
+	}(RoomManagerInstance)
+
+	Wg.Wait()
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

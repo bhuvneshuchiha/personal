@@ -1,49 +1,63 @@
 package websocket
 
 import (
+	"fmt"
+	"log"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
-
 type RoomManager struct {
 	Rooms map[string]*Room
-	Mu sync.Mutex
+	Mu    sync.Mutex
 }
 
-
 func (r *RoomManager) CreateRoom() string {
-	roomInstance := Room {
-		ID: uuid.New(),
-		Clients: make(map[*Client]bool),
-		Broadcast: make(chan *Message),
-		Register: make(chan *Client),
+	fmt.Println("Inside the create room function")
+	roomInstance := Room{
+		ID:         uuid.New(),
+		Clients:    make(map[*Client]bool),
+		Broadcast:  make(chan *Message),
+		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		CodeState: "",
-		Mu: sync.Mutex{},
+		CodeState:  "",
+		Mu:         sync.Mutex{},
 	}
 	//Add the roomInstance to the roomManager
 	r.Mu.Lock()
 	r.Rooms[roomInstance.ID.String()] = &roomInstance
 	r.Mu.Unlock()
 
-
 	go func() {
 		for {
 			select {
-			case val :=  <- roomInstance.Register:
+			case val := <-roomInstance.Register:
+				roomInstance.Mu.Lock()
 				roomInstance.Clients[val] = true
-			case val := <- roomInstance.Unregister:
+				roomInstance.Mu.Unlock()
+				log.Printf("New client registered: %s in room %s", val.ID, roomInstance.ID)
+
+			case val := <-roomInstance.Unregister:
+				roomInstance.Mu.Lock()
 				delete(roomInstance.Clients, val)
-			case msg :=  <- roomInstance.Broadcast:
+				roomInstance.Mu.Unlock()
+
+			case msg := <-roomInstance.Broadcast:
 				for client := range roomInstance.Clients {
-					client.Send <- msg
+					select {
+					case client.Send <- msg:
+					default:
+						// if we can't send, remove the client
+						roomInstance.Mu.Lock()
+						delete(roomInstance.Clients, client)
+						roomInstance.Mu.Unlock()
+						close(client.Send)
+					}
 				}
 			}
 		}
 	}()
-
 	return roomInstance.ID.String()
 }
 
@@ -103,5 +117,3 @@ func (r *RoomManager) BroadcastToRoom(roomId string, message *Message) string {
 	}
 	return "Room Id does not exist"
 }
-
-
