@@ -1,3 +1,4 @@
+
 1. Interviewer: Starts the Session
 Visits the app
 
@@ -75,3 +76,77 @@ AI Feedback	Summarizes candidate performance
 4. Code is run via backend sandbox
 5. Session is saved to DB
 6. Interviewer can review history later
+
+
+
+
+
+
+# . The next steps as of today 22-May-2025
+
+Next Steps Breakdown for the WebSocket Live Interview Project
+
+1. Complete Client Connection Lifecycle
+    Handle Client Disconnects Gracefully
+    Make sure when a client disconnects (closes the WS connection), you unregister it properly from the room and clean up resources.
+    → Test and fix any “use of closed network connection” errors.
+
+    Add Client Ping/Pong (Keepalive)
+    Implement WebSocket ping/pong to keep connections alive and detect broken connections faster.
+
+2. Message Handling & Broadcasting
+    Prevent Echo Back of Sender’s Messages
+    Modify broadcast logic to not send the message back to the sender client, unless you want that.
+    This fixes duplicate messages in Postman or other clients.
+
+    Add Message Types & Metadata
+    Extend Message struct to support different types (chat, join/leave notifications, code edits, etc.).
+
+    Implement Server-Side Commands or Events
+    For example, user joins/leaves, typing indicators, or system messages.
+
+3. Room Management Enhancements
+    Add Room Cleanup / Auto Deletion
+    Automatically delete rooms when empty to free memory.
+
+    Implement Room Listing API
+    Allow clients to query active rooms or their participants.
+
+    Add Room Password or Access Control (Optional)
+    Implement simple access control if needed.
+
+4. Client Identification & Authentication
+    Assign Client Names or User IDs
+    Instead of UUID only, allow clients to provide usernames or authenticate.
+
+    Integrate Authentication (JWT, sessions)
+    So only authorized users can create/join rooms.
+
+5. Frontend / Client Improvements
+    Build a simple Web UI
+    For easier testing, visualization of messages and rooms.
+
+    Improve error handling & reconnect logic
+    On the client-side WebSocket connection.
+
+6. Testing and Debugging
+    Add unit & integration tests
+    For room manager, client registration, message broadcast.
+
+    Stress test with multiple clients
+    Ensure stability and concurrency safety.
+
+7. Optional: Persistence & Scaling
+    Persist chat history
+    Store messages to a database for replay.
+
+    Scaling with multiple server instances
+    Use Redis pub/sub or similar to sync rooms across servers.
+
+# . Suggested immediate next step for you right now:
+
+    Fix the duplicate message echo problem by modifying your broadcast so the sender client doesn’t receive their own message twice.
+
+    Implement graceful client unregister on disconnect.
+
+    Add basic ping/pong to WebSocket connections.
