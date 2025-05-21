@@ -22,15 +22,12 @@ var RoomManagerInstance = &RoomManager{
 	Mu:    sync.Mutex{},
 }
 
-//for global access
 var Wg = &sync.WaitGroup{}
 
-// Define an endpoint handler for websocket connections
 func HandleWebsocket(c *gin.Context) {
 
-
 	roomId := c.Query("roomId")
-	// check if the room ID exists else return
+
 	if roomId == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "roomId was invalid",
@@ -46,7 +43,6 @@ func HandleWebsocket(c *gin.Context) {
 	}
 	defer ws.Close()
 
-	// created the client instance
 	ClientInstance := &Client{
 		Conn:     ws,
 		Send:     make(chan *Message),
@@ -56,8 +52,6 @@ func HandleWebsocket(c *gin.Context) {
 		Role:     "",
 	}
 
-	//get the room from the room after creating the room manager
-	// I will create the room manager in a separate route.
 	RoomManagerInstance.Mu.Lock()
 	room, ok := RoomManagerInstance.Rooms[roomId]
 	RoomManagerInstance.Mu.Unlock()
@@ -69,9 +63,9 @@ func HandleWebsocket(c *gin.Context) {
 		return
 	}
 
-	// Added the room to the client
+	// Assigned a room to the client
 	ClientInstance.Room = room
-	// Added the client to the room
+	// Added the client to the room manager along with the room.
 	RoomManagerInstance.RegisterClient(roomId, ClientInstance)
 
 	Wg.Add(1)
