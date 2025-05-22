@@ -74,6 +74,7 @@ func HandleWebsocket(c *gin.Context) {
 		defer func() {
 			rm.UnregisterClient(roomId, ClientInstance)
 			close(ClientInstance.Send)
+			log.Println("Client unregistered successfully...")
 		}()
 
 		for msg := range ClientInstance.Send {
