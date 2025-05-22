@@ -89,7 +89,6 @@ func HandleWebsocket(c *gin.Context) {
 	go func(rm *RoomManager) {
 		defer Wg.Done()
 		for {
-			log.Println("error fucked here")
 			_, p, err := ws.ReadMessage()
 			if err != nil {
 				log.Println("read error:", err)
