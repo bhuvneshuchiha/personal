@@ -73,7 +73,7 @@ func HandleWebsocket(c *gin.Context) {
 		defer Wg.Done()
 		defer func() {
 			rm.UnregisterClient(roomId, ClientInstance)
-			// close(ClientInstance.Send)
+			close(ClientInstance.Send)
 		}()
 
 		for msg := range ClientInstance.Send {
@@ -89,6 +89,7 @@ func HandleWebsocket(c *gin.Context) {
 	go func(rm *RoomManager) {
 		defer Wg.Done()
 		for {
+			log.Println("error fucked here")
 			_, p, err := ws.ReadMessage()
 			if err != nil {
 				log.Println("read error:", err)
