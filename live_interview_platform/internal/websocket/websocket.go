@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,10 +13,19 @@ import (
 
 // Declare an upgrader
 var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
 }
+
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 512
+)
 
 var RoomManagerInstance = &RoomManager{
 	Rooms: make(map[string]*Room),
@@ -68,17 +78,21 @@ func HandleWebsocket(c *gin.Context) {
 	// Added the client to the room manager along with the room.
 	RoomManagerInstance.RegisterClient(roomId, ClientInstance)
 
+	//Write pump
 	Wg.Add(1)
 	go func(rm *RoomManager) {
+		ticker := time.NewTicker(pingPeriod)
 		defer Wg.Done()
 		defer func() {
 			rm.UnregisterClient(roomId, ClientInstance)
 			close(ClientInstance.Send)
+			ticker.Stop()
+			ClientInstance.Conn.Close()
 			log.Println("Client unregistered successfully...")
 		}()
 
 		for msg := range ClientInstance.Send {
-			err := ws.WriteMessage(websocket.TextMessage, []byte(msg.MessageString))
+			err := ClientInstance.Conn.WriteMessage(websocket.TextMessage, []byte(msg.MessageString))
 			if err != nil {
 				log.Println("write error:", err)
 				return
@@ -86,13 +100,25 @@ func HandleWebsocket(c *gin.Context) {
 		}
 	}(RoomManagerInstance)
 
+	//Read Pump
 	Wg.Add(1)
 	go func(rm *RoomManager) {
 		defer Wg.Done()
+
+		ClientInstance.Conn.SetReadLimit(maxMessageSize)
+		ClientInstance.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		ClientInstance.Conn.SetPongHandler(func(string) error {
+			ClientInstance.Conn.SetReadDeadline(time.Now().Add(pongWait))
+			return nil
+		})
+
 		for {
-			_, p, err := ws.ReadMessage()
+			_, p, err := ClientInstance.Conn.ReadMessage()
 			if err != nil {
-				log.Println("read error:", err)
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway,
+					websocket.CloseAbnormalClosure) {
+					log.Println("read error:", err)
+				}
 				return
 			}
 			msg := &Message{
