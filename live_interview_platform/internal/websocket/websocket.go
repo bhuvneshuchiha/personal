@@ -20,13 +20,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-const (
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 512
-)
-
 var RoomManagerInstance = &RoomManager{
 	Rooms: make(map[string]*Room),
 	Mu:    sync.Mutex{},
@@ -81,18 +74,15 @@ func HandleWebsocket(c *gin.Context) {
 	//Write pump
 	Wg.Add(1)
 	go func(rm *RoomManager) {
-		ticker := time.NewTicker(pingPeriod)
 		defer Wg.Done()
 		defer func() {
 			rm.UnregisterClient(roomId, ClientInstance)
 			close(ClientInstance.Send)
-			ticker.Stop()
-			ClientInstance.Conn.Close()
 			log.Println("Client unregistered successfully...")
 		}()
 
 		for msg := range ClientInstance.Send {
-			err := ClientInstance.Conn.WriteMessage(websocket.TextMessage, []byte(msg.MessageString))
+			err := ws.WriteMessage(websocket.TextMessage, []byte(msg.MessageString))
 			if err != nil {
 				log.Println("write error:", err)
 				return
@@ -105,20 +95,10 @@ func HandleWebsocket(c *gin.Context) {
 	go func(rm *RoomManager) {
 		defer Wg.Done()
 
-		ClientInstance.Conn.SetReadLimit(maxMessageSize)
-		ClientInstance.Conn.SetReadDeadline(time.Now().Add(pongWait))
-		ClientInstance.Conn.SetPongHandler(func(string) error {
-			ClientInstance.Conn.SetReadDeadline(time.Now().Add(pongWait))
-			return nil
-		})
-
 		for {
-			_, p, err := ClientInstance.Conn.ReadMessage()
+			_, p, err := ws.ReadMessage()
 			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway,
-					websocket.CloseAbnormalClosure) {
-					log.Println("read error:", err)
-				}
+				log.Println("read error:", err)
 				return
 			}
 			msg := &Message{
