@@ -9,6 +9,7 @@ import (
 type Message struct {
 	MessageString string
 	Sender string
+	Status string
 }
 
 type Room struct {

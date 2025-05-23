@@ -1,10 +1,10 @@
 package websocket
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -27,6 +27,7 @@ var RoomManagerInstance = &RoomManager{
 
 var Wg = &sync.WaitGroup{}
 
+// websocket handler
 func HandleWebsocket(c *gin.Context) {
 
 	roomId := c.Query("roomId")
@@ -52,7 +53,7 @@ func HandleWebsocket(c *gin.Context) {
 		Room:     &Room{},
 		Username: "",
 		ID:       uuid.New(),
-		Role:     "",
+		Role:     "client",
 	}
 
 	RoomManagerInstance.Mu.Lock()
@@ -71,44 +72,66 @@ func HandleWebsocket(c *gin.Context) {
 	// Added the client to the room manager along with the room.
 	RoomManagerInstance.RegisterClient(roomId, ClientInstance)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	//Write pump
 	Wg.Add(1)
-	go func(rm *RoomManager) {
+	go func(rm *RoomManager, ctx context.Context, cancel context.CancelFunc) {
 		defer Wg.Done()
 		defer func() {
 			rm.UnregisterClient(roomId, ClientInstance)
 			close(ClientInstance.Send)
 			log.Println("Client unregistered successfully...")
 		}()
-
-		for msg := range ClientInstance.Send {
-			err := ws.WriteMessage(websocket.TextMessage, []byte(msg.MessageString))
-			if err != nil {
-				log.Println("write error:", err)
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("context cancelled, write pump exiting early")
 				return
+			case msg, ok := <-ClientInstance.Send:
+				if !ok {
+					log.Println("client send channel closed")
+					return
+				}
+				err := ws.WriteMessage(websocket.TextMessage, []byte(msg.MessageString))
+				if err != nil {
+					cancel()
+					log.Println("write error:", err)
+					return
+				}
 			}
 		}
-	}(RoomManagerInstance)
+	}(RoomManagerInstance, ctx, cancel)
 
 	//Read Pump
 	Wg.Add(1)
-	go func(rm *RoomManager) {
+	go func(rm *RoomManager, ctx context.Context, cancel context.CancelFunc) {
 		defer Wg.Done()
 
 		for {
-			_, p, err := ws.ReadMessage()
-			if err != nil {
-				log.Println("read error:", err)
+			select {
+			case <-ctx.Done():
+				log.Println("context cancelled, exiting loop early")
 				return
+			default:
+				_, p, err := ws.ReadMessage()
+				if err != nil {
+					cancel()
+					log.Println("read error:", err)
+					return
+				}
+				msg := &Message{
+					MessageString: string(p),
+					Sender:        "client",
+					Status:        "active",
+				}
+				// send to room for broadcast
+				rm.BroadcastToRoom(roomId, msg)
+				log.Println(msg)
 			}
-			msg := &Message{
-				MessageString: string(p),
-				Sender:        "client",
-			}
-			// send to room for broadcast
-			rm.BroadcastToRoom(roomId, msg)
 		}
-	}(RoomManagerInstance)
+	}(RoomManagerInstance, ctx, cancel)
 
 	Wg.Wait()
 }

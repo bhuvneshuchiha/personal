@@ -150,3 +150,99 @@ Next Steps Breakdown for the WebSocket Live Interview Project
     Implement graceful client unregister on disconnect.
 
     Add basic ping/pong to WebSocket connections.
+
+
+
+
+
+# NEXT STEPS AS OF 23-05
+
+🔜 Next Steps
+1. Ping/Pong Heartbeat Support (Connection Health)
+
+    Use SetReadDeadline, SetPongHandler on server side
+
+    Client should send periodic ping frames
+
+    Detect dead connections more quickly than relying on write/read errors
+
+2. Room Management Enhancements
+
+    Auto-delete empty rooms when all clients disconnect
+
+    Keep a mapping: roomID → []*Client and clean up when empty
+
+    Allow dynamic room creation/joining from the client side (e.g., via message type "join_room")
+
+3. Client Identity and Roles
+
+    Assign usernames or roles (e.g., interviewer, candidate)
+
+    Attach metadata to clients (can use Client struct)
+
+    Enable the UI to reflect who sent what (name, timestamp, etc.)
+
+4. Command-Based Messaging Protocol
+
+Define a basic protocol over WebSocket messages:
+
+{
+  "type": "code_update",
+  "content": "func main() {}",
+  "sender": "interviewer"
+}
+
+Types can include:
+
+    code_update
+
+    chat_message
+
+    join_room
+
+    leave_room
+
+Parse these on the backend and route accordingly.
+5. Persistent Code State (Optional Next Stage)
+
+    Use a shared state model for code (in-memory for now, Redis if scaling)
+
+    Apply patching or replace entire code buffer
+
+    Support "code sync" on client (send current full buffer on reconnect)
+
+6. Frontend Integration (Basic HTML/JS)
+
+Build a simple frontend to:
+
+    Join a room
+
+    Type and see real-time updates
+
+    Chat with other users
+
+    Leave and rejoin a session
+
+Use Monaco Editor or CodeMirror for real-time collaborative code input.
+7. Security
+
+    Add basic auth/token for each client
+
+    Restrict who can join a room
+
+    Add rate limiting or abuse protection if going public
+
+8. Recording/Playback (Optional)
+
+    Store messages or code state deltas per session
+
+    Enable replay of an interview session
+
+🧭 Suggested Roadmap Summary
+Stage	Focus
+1	Ping/Pong heartbeat + room cleanup
+2	Room & client roles, message types
+3	Frontend prototype (basic UI + WebSocket)
+4	Real-time code sync (Monaco editor)
+5	Identity, auth, roles
+6	Optional: persistent state or replay
