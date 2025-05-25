@@ -40,7 +40,7 @@ func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom ) erro
 		MessageString: string(p),
 		ClientEmoScore: 0,
 	}
-	masterRoom.Room.BroadCastMessage(msgStorage)
+	room.BroadCastMessage(msgStorage)
 	log.Println("Message read from websocket.go", msgStorage)
 
 	return nil
