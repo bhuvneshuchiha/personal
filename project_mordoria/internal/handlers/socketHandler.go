@@ -57,7 +57,7 @@ func SocketHandler(c *gin.Context) {
 			err := websocket.WebSocketWriteMessage(ws, msg)
 			if err != nil {
 				log.Println("Could not write the message", err)
-				masterRoom.Room.RemoveClient(clt.ID.String())
+				// masterRoom.Room.RemoveClient(clt.ID.String())
 				return
 			}
 		}
