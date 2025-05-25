@@ -17,6 +17,7 @@ type MasterRoom struct {
 	Mu            *sync.Mutex
 }
 
+var Room = CreateMasterRoom()
 
 func CreateMasterRoom() *MasterRoom {
 	return &MasterRoom{
@@ -30,12 +31,10 @@ func CreateMasterRoom() *MasterRoom {
 
 func (m *MasterRoom) RunLoop() {
 	for {
-		select {
-		case msg := <- m.ListenMessage:
+		msg := <-m.ListenMessage
 		m.Mu.Lock()
 		for _, client := range m.Clients {
-				client.SendMessage <- msg
-			}
+			client.SendMessage <- msg
 		}
 		m.Mu.Unlock()
 	}
@@ -74,19 +73,5 @@ func (m *MasterRoom) RemoveClient(id string) error {
 }
 
 func (m *MasterRoom) BroadCastMessage(message *message.Message) {
-	m.Mu.Lock()
 	m.ListenMessage <- message
-	m.Mu.Unlock()
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -16,18 +16,18 @@ var Wg sync.WaitGroup
 
 func SocketHandler(c *gin.Context) {
 	ws := websocket.EstablishWebsocketConn(c, websocket.Upgrader)
-	room := masterRoom.CreateMasterRoom()
-	roomId := room.ID.String()
+	roomId := masterRoom.Room.ID.String()
 
-	go room.RunLoop()
+	go masterRoom.Room.RunLoop()
 
 	clientInst := &client.Client{
+		Conn:          ws,
 		ID:            uuid.New(),
 		SendMessage:   make(chan *message.Message),
 		MessagesCount: 0,
 	}
 
-	err := room.AddClient(clientInst, roomId)
+	err := masterRoom.Room.AddClient(clientInst, roomId)
 	if err != nil {
 		log.Println("Cannot add client to room", err)
 		return
@@ -37,11 +37,14 @@ func SocketHandler(c *gin.Context) {
 	Wg.Add(1)
 	go func(clt *client.Client) {
 		defer Wg.Done()
-		err := websocket.WebsocketReadMessage(ws, room)
-		if err != nil {
-			log.Println("Error while reading the message", err)
-			room.RemoveClient(clt.ID.String())
-			return
+		log.Println("Inside Websocket read goroutine")
+		for {
+			err := websocket.WebsocketReadMessage(ws, masterRoom.Room)
+			if err != nil {
+				log.Println("Error while reading the message", err)
+				masterRoom.Room.RemoveClient(clt.ID.String())
+				return
+			}
 		}
 	}(clientInst)
 
@@ -50,10 +53,11 @@ func SocketHandler(c *gin.Context) {
 	go func(clt *client.Client) {
 		defer Wg.Done()
 		for msg := range clientInst.SendMessage {
+			log.Println("Inside websocket write goroutine")
 			err := websocket.WebSocketWriteMessage(ws, msg)
 			if err != nil {
 				log.Println("Could not write the message", err)
-				room.RemoveClient(clt.ID.String())
+				masterRoom.Room.RemoveClient(clt.ID.String())
 				return
 			}
 		}

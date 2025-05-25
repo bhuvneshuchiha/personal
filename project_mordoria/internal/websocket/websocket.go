@@ -40,10 +40,8 @@ func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom ) erro
 		MessageString: string(p),
 		ClientEmoScore: 0,
 	}
-
-	room.Mu.Lock()
-	room.ListenMessage <- msgStorage
-	room.Mu.Unlock()
+	masterRoom.Room.BroadCastMessage(msgStorage)
+	log.Println("Message read from websocket.go", msgStorage)
 
 	return nil
 }
@@ -51,6 +49,7 @@ func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom ) erro
 
 func WebSocketWriteMessage(ws *websocket.Conn, msg *message.Message) error {
 	err := ws.WriteMessage(websocket.TextMessage, []byte(msg.MessageString))
+	log.Println("Message written", msg.MessageString)
 	if err != nil {
 		log.Println("Error while writing to websocket", err)
 		ws.Close()

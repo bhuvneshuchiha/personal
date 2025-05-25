@@ -16,7 +16,7 @@ func main() {
 		})
 	})
 
-	r.POST("/v1/mordoria", handlers.SocketHandler)
+	r.GET("/ws", handlers.SocketHandler)
 
 	r.Run()
 }
