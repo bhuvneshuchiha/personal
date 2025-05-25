@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/bhuvneshuhciha/project_mordoria/internal/handlers"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -13,6 +15,8 @@ func main() {
 		"status" : 201,
 		})
 	})
+
+	r.POST("/v1/mordoria", handlers.SocketHandler)
 
 	r.Run()
 }

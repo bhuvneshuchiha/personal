@@ -1,4 +1,4 @@
-package masterRoom
+package message
 
 type Message struct {
 	MessageString string
