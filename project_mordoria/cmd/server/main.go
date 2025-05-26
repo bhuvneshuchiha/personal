@@ -18,5 +18,5 @@ func main() {
 
 	r.GET("/ws/v1/mordoria", handlers.SocketHandler)
 
-	r.Run()
+	r.Run(":8081")
 }
