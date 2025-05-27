@@ -1,7 +1,7 @@
 package message
 
 type Message struct {
-	MessageString string
-	ClientEmoScore int
+	Client_id      string `json:"client_id"`
+	MessageString  string `json:"payload"`
+	ClientEmoScore string `json:"ai_emot_score"`
 }
-

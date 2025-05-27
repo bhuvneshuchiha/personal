@@ -3,12 +3,15 @@ const ws = new WebSocket('ws://localhost:8081/ws/v1/mordoria');
 let messageArr = [];
 
 document.getElementById("sendButton").addEventListener("click" ,() => {
-    console.log("Inside the tricker")
     const input = document.getElementById("messageInput")
+    const ai_score = document.getElementById("ai_emot")
+    const ai_emot = ai_score.value;
     const message = input.value;
+
     ws.send(JSON.stringify({
         clientId: 1,
-        payload: message
+        payload: message,
+        ai_emot_score: ai_emot
     }));
     input.value = ""
 });
@@ -18,7 +21,7 @@ ws.onopen = () => {
 };
 
 ws.onmessage = (event) => {
-    console.log('Sent to Go backend:', event.data);
+    console.log('Received from Go backend:', event.data);
     messageArr.push(event.data);
     console.log(messageArr);
 };
@@ -32,20 +35,3 @@ ws.onclose = () => {
 };
 
 
-// ws.on('open', () => {
-//     console.log('Connected to Go backend');
-// });
-//
-// ws.on('message', (data) => {
-//     console.log('Received from Go backend:', data.toString());
-//     messageArr.push(data.toString())
-// });
-//
-// ws.on('close', () => {
-//     console.log('Disconnected from Go backend');
-// });
-//
-// ws.on('error', (error) => {
-//     console.error('WebSocket error:', error);
-// });
-//

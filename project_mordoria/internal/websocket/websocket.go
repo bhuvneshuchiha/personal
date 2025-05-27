@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -36,9 +37,16 @@ func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom ) erro
 		log.Println("Error occured", err)
 		return err
 	}
+	var incomingMessage message.Message
+	er := json.Unmarshal(p, &incomingMessage)
+		if er != nil {
+		log.Println("Cannot Unmarshal the data")
+		return er
+	}
 	msgStorage := &message.Message{
-		MessageString: string(p),
-		ClientEmoScore: 0,
+		Client_id : "",
+		MessageString: incomingMessage.MessageString,
+		ClientEmoScore: "0",
 	}
 	room.BroadCastMessage(msgStorage)
 	log.Println("Message read from websocket.go", msgStorage)
