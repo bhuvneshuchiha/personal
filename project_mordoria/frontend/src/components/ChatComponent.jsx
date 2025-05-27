@@ -1,24 +1,26 @@
 import { useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
+import axios from "axios";
 
 function ChatComponent() {
-	const [clientMessages, setClientMessages] = useState("");
+	const [clientMessages, setClientMessages] = useState([]);
 	const [ai_emot, set_ai_emot] = useState("");
 	const [messages, setMessages] = useState([]);
 	const ws = useRef(null);
 
 	useEffect(() => {
-		ws.current = new WebSocket("ws://localhost:8081/ws/v1/mordoria");
+		ws.current = new WebSocket("http://localhost:8081/ws/v1/mordoria");
 
 		ws.current.onopen = () => {
 			console.log("Connected to the go backend");
 		};
 
 		ws.current.onmessage = (event) => {
-			console.log("Received from the go backend", event.data);
-            let messageChat = event.data
-			setMessages((prev) => [...prev, messageChat]);
+			console.log("RAW event.data:", event.data);
+			let messageChat = JSON.parse(event.data);
+			// let messageChat = event.data;
+			setMessages((prev) => [...prev, ...messageChat]);
 		};
 
 		ws.current.onerror = (error) => {
@@ -34,16 +36,59 @@ function ChatComponent() {
 		};
 	}, []);
 
+	useEffect(() => {
+		const intervalId = setInterval(async () => {
+			await sendAllChats();
+			setMessages([]);
+		}, 30000);
+		return () => {
+			clearInterval(intervalId);
+		};
+	}, []);
+
+
 	const handleSend = () => {
 		if (ws.current && ws.current.readyState === WebSocket.OPEN) {
 			ws.current.send(
 				JSON.stringify({
-					clientId: 1,
-					payload: clientMessages,
-					ai_emot_score: ai_emot.toString(),
+					client_id: "kdkdk",
+					payload: [
+						{
+							payload: clientMessages,
+							ai_emot_score: ai_emot.toString(),
+						},
+					],
 				}),
 			);
-			setClientMessages("");
+			setClientMessages([]);
+		}
+	};
+
+	const sendAllChats = async () => {
+		let sum = 0;
+		for (let i = 0; i < messages.length; i++) {
+			sum += parseInt(messages[i].ai_emot_score);
+		}
+
+		const average_ai_emot_score = sum / messages.length;
+		try {
+			const response = await axios.post(
+				"http://localhost:8081/v1/mordoria/chat_summarize",
+				{
+					client_id: "1",
+					payload: [
+						{
+							payload: messages,
+                            ai_emot_score: String(average_ai_emot_score),
+						},
+					],
+					ai_emot_score: String(average_ai_emot_score),
+				},
+			);
+
+			console.log("Response", response.data);
+		} catch (error) {
+			console.log("Error: ", error);
 		}
 	};
 
@@ -66,8 +111,10 @@ function ChatComponent() {
 			<div>
 				<h3>Received Messages:</h3>
 				<ul>
-					{messages.map((msg, index) => (
-						<li key={index}>{msg}</li>
+					{messages.map((item, index) => (
+						<li key={index}>
+							Message: {item.payload} | AI Emot Score: {item.ai_emot_score}
+						</li>
 					))}
 				</ul>
 			</div>
@@ -75,5 +122,4 @@ function ChatComponent() {
 	);
 }
 
-
-export default ChatComponent
+export default ChatComponent;

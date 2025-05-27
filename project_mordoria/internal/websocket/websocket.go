@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"github.com/bhuvneshuhciha/project_mordoria/internal/masterRoom"
-	"github.com/bhuvneshuhciha/project_mordoria/internal/message"
+	// "github.com/bhuvneshuhciha/project_mordoria/internal/message"
+	"github.com/bhuvneshuhciha/project_mordoria/pkg/ai_interceptor"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -37,16 +38,21 @@ func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom ) erro
 		log.Println("Error occured", err)
 		return err
 	}
-	var incomingMessage message.Message
+	log.Println("The incoming message string??",string(p))
+	// var incomingMessage message.Message
+
+	var incomingMessage ai_interceptor.IncomingMessages
+	log.Println("This is the marshalled data", incomingMessage)
+
 	er := json.Unmarshal(p, &incomingMessage)
 		if er != nil {
 		log.Println("Cannot Unmarshal the data")
 		return er
 	}
-	msgStorage := &message.Message{
-		Client_id : "",
-		MessageString: incomingMessage.MessageString,
-		ClientEmoScore: "0",
+	msgStorage := &ai_interceptor.IncomingMessages{
+		ClientId: incomingMessage.ClientId,
+		Payload: incomingMessage.Payload,
+		// AiEmotScore: incomingMessage.AiEmotScore,
 	}
 	room.BroadCastMessage(msgStorage)
 	log.Println("Message read from websocket.go", msgStorage)
@@ -55,13 +61,14 @@ func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom ) erro
 }
 
 
-func WebSocketWriteMessage(ws *websocket.Conn, msg *message.Message) error {
-	err := ws.WriteMessage(websocket.TextMessage, []byte(msg.MessageString))
-	log.Println("Message written", msg.MessageString)
-	if err != nil {
-		log.Println("Error while writing to websocket", err)
+func WebSocketWriteMessage(ws *websocket.Conn, msg *ai_interceptor.IncomingMessages) error {
+	// er := ws.WriteJSON(websocket.TextMessage, data)
+	er := ws.WriteJSON(msg.Payload)
+	log.Println("Message written", msg.Payload)
+	if er != nil {
+		log.Println("Error while writing to websocket", er)
 		ws.Close()
-		return err
+		return er
 	}
 	return nil
 }

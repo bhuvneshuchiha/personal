@@ -1,6 +1,7 @@
 package ai_interceptor
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/bhuvneshuhciha/project_mordoria/internal/message"
@@ -8,33 +9,32 @@ import (
 )
 
 // store all the messages coming from the client to send to groq
-var msgSlice []message.Message
-
-func InterceptorHandler(c *gin.Context) {
-	var msg message.Message
-	err := c.BindJSON(&msg)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err,
-		})
-		return
-	}
-	msgSlice = append(msgSlice, msg)
-	c.JSON(http.StatusOK, gin.H {
-		"message": "success",
-	})
-	// clear the slice so that the next 30 second fresh messages
-	// can be stored.
-	msgSlice = msgSlice[:0]
-	return
+type FinalPayload struct {
+	ClientId      string            `json:"client_id"`
+	Payload       []message.Message `json:"payload"`
+	Ai_emot_score string            `json:"ai_emot_score"`
 }
 
+func InterceptorHandler(c *gin.Context) {
+	log.Println("Inside the request ----------")
+	var msgBody *FinalPayload = &FinalPayload{}
 
+	err := c.BindJSON(&msgBody)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		log.Println("Here is the msg body ------", msgBody)
+		log.Println("Here is the error", err.Error())
+		return
+	}
 
+	log.Println("this is the payload from axios:", msgBody)
 
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "success",
+		"all_messages": msgBody,
+	})
 
-
-
-
-
-
+	return
+}

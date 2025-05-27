@@ -6,8 +6,9 @@ import (
 
 	"github.com/bhuvneshuhciha/project_mordoria/internal/client"
 	"github.com/bhuvneshuhciha/project_mordoria/internal/masterRoom"
-	"github.com/bhuvneshuhciha/project_mordoria/internal/message"
+	// "github.com/bhuvneshuhciha/project_mordoria/internal/message"
 	"github.com/bhuvneshuhciha/project_mordoria/internal/websocket"
+	"github.com/bhuvneshuhciha/project_mordoria/pkg/ai_interceptor"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -22,7 +23,8 @@ func SocketHandler(c *gin.Context) {
 	clientInst := &client.Client{
 		Conn:          ws,
 		ID:            uuid.New(),
-		SendMessage:   make(chan *message.Message),
+		// SendMessage:   make(chan *message.Message),
+		SendMessage:   make(chan *ai_interceptor.IncomingMessages),
 		MessagesCount: 0,
 	}
 

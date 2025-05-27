@@ -5,15 +5,17 @@ import (
 	"sync"
 
 	"github.com/bhuvneshuhciha/project_mordoria/internal/client"
-	"github.com/bhuvneshuhciha/project_mordoria/internal/message"
+	// "github.com/bhuvneshuhciha/project_mordoria/internal/message"
+	"github.com/bhuvneshuhciha/project_mordoria/pkg/ai_interceptor"
 	"github.com/google/uuid"
 )
 
 type MasterRoom struct {
-	ID            uuid.UUID                 `json:"id"`
-	Clients       map[string]*client.Client `json:"clients_table"`
-	ListenMessage chan *message.Message     `json:"message_string"`
-	RoomTag       string                    `json:"room_tag"`
+	ID      uuid.UUID                 `json:"id"`
+	Clients map[string]*client.Client `json:"clients_table"`
+	// ListenMessage chan *message.Message     `json:"message_string"`
+	ListenMessage chan *ai_interceptor.IncomingMessages `json:"message_string"`
+	RoomTag       string                                `json:"room_tag"`
 	Mu            *sync.Mutex
 }
 
@@ -23,7 +25,8 @@ func CreateMasterRoom() *MasterRoom {
 	return &MasterRoom{
 		ID:            uuid.New(),
 		Clients:       make(map[string]*client.Client),
-		ListenMessage: make(chan *message.Message),
+		// ListenMessage: make(chan *message.Message),
+		ListenMessage: make(chan *ai_interceptor.IncomingMessages),
 		RoomTag:       "Witty",
 		Mu:            &sync.Mutex{},
 	}
@@ -72,6 +75,9 @@ func (m *MasterRoom) RemoveClient(id string) error {
 	return nil
 }
 
-func (m *MasterRoom) BroadCastMessage(message *message.Message) {
+//	func (m *MasterRoom) BroadCastMessage(message *message.Message) {
+//		m.ListenMessage <- message
+//	}
+func (m *MasterRoom) BroadCastMessage(message *ai_interceptor.IncomingMessages) {
 	m.ListenMessage <- message
 }
