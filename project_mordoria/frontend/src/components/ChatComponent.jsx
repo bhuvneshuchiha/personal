@@ -4,122 +4,122 @@ import { useRef } from "react";
 import axios from "axios";
 
 function ChatComponent() {
-	const [clientMessages, setClientMessages] = useState([]);
-	const [ai_emot, set_ai_emot] = useState("");
-	const [messages, setMessages] = useState([]);
-	const ws = useRef(null);
+    const [clientMessages, setClientMessages] = useState([]);
+    const [ai_emot, set_ai_emot] = useState("");
+    const [messages, setMessages] = useState([]);
+    const ws = useRef(null);
 
-	useEffect(() => {
-		ws.current = new WebSocket("http://localhost:8081/ws/v1/mordoria");
+    useEffect(() => {
+        ws.current = new WebSocket("http://localhost:8081/ws/v1/mordoria");
 
-		ws.current.onopen = () => {
-			console.log("Connected to the go backend");
-		};
+        ws.current.onopen = () => {
+            console.log("Connected to the go backend");
+        };
 
-		ws.current.onmessage = (event) => {
-			console.log("RAW event.data:", event.data);
-			let messageChat = JSON.parse(event.data);
-			// let messageChat = event.data;
-			setMessages((prev) => [...prev, ...messageChat]);
-		};
+        ws.current.onmessage = (event) => {
+            console.log("RAW event.data:", event.data);
+            let messageChat = JSON.parse(event.data);
+            // let messageChat = event.data;
+            setMessages((prev) => [...prev, ...messageChat]);
+        };
 
-		ws.current.onerror = (error) => {
-			console.error("Error encountered", error);
-		};
+        ws.current.onerror = (error) => {
+            console.error("Error encountered", error);
+        };
 
-		ws.current.onclose = () => {
-			console.log("Websocket connection closed");
-		};
+        ws.current.onclose = () => {
+            console.log("Websocket connection closed");
+        };
 
-		return () => {
-			ws.current.close();
-		};
-	}, []);
+        return () => {
+            ws.current.close();
+        };
+    }, []);
 
-	useEffect(() => {
-		const intervalId = setInterval(async () => {
-			await sendAllChats();
-			setMessages([]);
-		}, 30000);
-		return () => {
-			clearInterval(intervalId);
-		};
-	}, []);
+    useEffect(() => {
+        const intervalId = setInterval(async () => {
+            await sendAllChats();
+            setMessages([]);
+        }, 30000);
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, []);
 
 
-	const handleSend = () => {
-		if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-			ws.current.send(
-				JSON.stringify({
-					client_id: "kdkdk",
-					payload: [
-						{
-							payload: clientMessages,
-							ai_emot_score: ai_emot.toString(),
-						},
-					],
-				}),
-			);
-			setClientMessages([]);
-		}
-	};
+    const handleSend = () => {
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            ws.current.send(
+                JSON.stringify({
+                    client_id: "kdkdk",
+                    payload: [
+                        {
+                            payload: clientMessages,
+                            ai_emot_score: ai_emot.toString(),
+                        },
+                    ],
+                }),
+            );
+            setClientMessages([]);
+        }
+    };
 
-	const sendAllChats = async () => {
-		let sum = 0;
-		for (let i = 0; i < messages.length; i++) {
-			sum += parseInt(messages[i].ai_emot_score);
-		}
+    const sendAllChats = async () => {
+        let sum = 0;
+        for (let i = 0; i < messages.length; i++) {
+            sum += parseInt(messages[i].ai_emot_score);
+        }
 
-		const average_ai_emot_score = sum / messages.length;
-		try {
-			const response = await axios.post(
-				"http://localhost:8081/v1/mordoria/chat_summarize",
-				{
-					client_id: "1",
-					payload: [
-						{
-							payload: messages,
+        const average_ai_emot_score = sum / messages.length;
+        try {
+            const response = await axios.post(
+                "http://localhost:8081/v1/mordoria/chat_summarize",
+                {
+                    client_id: "1",
+                    payload: [
+                        {
+                            payload: messages,
                             ai_emot_score: String(average_ai_emot_score),
-						},
-					],
-					ai_emot_score: String(average_ai_emot_score),
-				},
-			);
+                        },
+                    ],
+                    ai_emot_score: String(average_ai_emot_score),
+                },
+            );
 
-			console.log("Response", response.data);
-		} catch (error) {
-			console.log("Error: ", error);
-		}
-	};
+            console.log("Response", response.data);
+        } catch (error) {
+            console.log("Error: ", error);
+        }
+    };
 
-	return (
-		<div>
-			<input
-				type="text"
-				value={clientMessages}
-				onChange={(e) => setClientMessages(e.target.value)}
-				placeholder="Type your message"
-			/>
-			<input
-				type="text"
-				value={ai_emot}
-				onChange={(e) => set_ai_emot(e.target.value)}
-				placeholder="AI Emot Score"
-			/>
-			<button onClick={handleSend}>Send</button>
+    return (
+        <div>
+            <input
+                type="text"
+                value={clientMessages}
+                onChange={(e) => setClientMessages(e.target.value)}
+                placeholder="Type your message"
+            />
+            <input
+                type="text"
+                value={ai_emot}
+                onChange={(e) => set_ai_emot(e.target.value)}
+                placeholder="AI Emot Score"
+            />
+            <button onClick={handleSend}>Send</button>
 
-			<div>
-				<h3>Received Messages:</h3>
-				<ul>
-					{messages.map((item, index) => (
-						<li key={index}>
-							Message: {item.payload} | AI Emot Score: {item.ai_emot_score}
-						</li>
-					))}
-				</ul>
-			</div>
-		</div>
-	);
+            <div>
+                <h3>Received Messages:</h3>
+                <ul>
+                    {messages.map((item, index) => (
+                        <li key={index}>
+                            Message: {item.payload} | AI Emot Score: {item.ai_emot_score}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
 }
 
 export default ChatComponent;

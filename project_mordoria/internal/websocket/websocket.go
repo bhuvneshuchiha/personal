@@ -12,18 +12,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var Upgrader = &websocket.Upgrader {
-	ReadBufferSize : 1024,
-	WriteBufferSize : 1024,
-	CheckOrigin : func(r *http.Request) bool {
+var Upgrader = &websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
 }
 
-func EstablishWebsocketConn(c *gin.Context, Upgrader *websocket.Upgrader) *websocket.Conn{
+func EstablishWebsocketConn(c *gin.Context, Upgrader *websocket.Upgrader) *websocket.Conn {
 	ws, err := Upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H {
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to connected to websocket",
 		})
 		return nil
@@ -31,27 +31,26 @@ func EstablishWebsocketConn(c *gin.Context, Upgrader *websocket.Upgrader) *webso
 	return ws
 }
 
-
-func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom ) error {
+func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom) error {
 	_, p, err := ws.ReadMessage()
 	if err != nil {
 		log.Println("Error occured", err)
 		return err
 	}
-	log.Println("The incoming message string??",string(p))
+	log.Println("The incoming message string??", string(p))
 	// var incomingMessage message.Message
 
 	var incomingMessage ai_interceptor.IncomingMessages
 	log.Println("This is the marshalled data", incomingMessage)
 
 	er := json.Unmarshal(p, &incomingMessage)
-		if er != nil {
+	if er != nil {
 		log.Println("Cannot Unmarshal the data")
 		return er
 	}
 	msgStorage := &ai_interceptor.IncomingMessages{
 		ClientId: incomingMessage.ClientId,
-		Payload: incomingMessage.Payload,
+		Payload:  incomingMessage.Payload,
 		// AiEmotScore: incomingMessage.AiEmotScore,
 	}
 	room.BroadCastMessage(msgStorage)
@@ -59,7 +58,6 @@ func WebsocketReadMessage(ws *websocket.Conn, room *masterRoom.MasterRoom ) erro
 
 	return nil
 }
-
 
 func WebSocketWriteMessage(ws *websocket.Conn, msg *ai_interceptor.IncomingMessages) error {
 	// er := ws.WriteJSON(websocket.TextMessage, data)
@@ -72,17 +70,3 @@ func WebSocketWriteMessage(ws *websocket.Conn, msg *ai_interceptor.IncomingMessa
 	}
 	return nil
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
