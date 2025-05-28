@@ -28,12 +28,6 @@ function ChatComponent() {
 			console.log("RAW event.data:", event.data);
 			let messageChat = JSON.parse(event.data);
 			console.log(messageChat);
-			// setMessages((prev) => [...prev, ...messageChat]);
-			// setMessages((prev) => {
-			// 	const updated = [...prev, ...messageChat];
-			// 	console.log("Updated messages array: ", updated);
-			// 	console.log("Originalllllll messages array: ", messages);
-			// 	return updated;
 			setMessages((prev) => {
 				const updated = [...prev, ...messageChat];
 				console.log("Updated messages array: ", updated);
@@ -71,8 +65,8 @@ function ChatComponent() {
 	useEffect(() => {
 		const intervalId = setInterval(() => {
 			setMessages((prev) => {
-				sendAllChats(prev); // pass the freshest messages array
-				return []; // clear messages afterward
+				sendAllChats(prev);
+				return [];
 			});
 		}, 30000);
 		return () => {
@@ -81,22 +75,6 @@ function ChatComponent() {
 	}, []);
 >>>>>>> ecd09a7 (json_fired)
 
-	// useEffect(() => {
-	// 	// const intervalId = setInterval(() => {
-	// 	// 	setMessages((prev) => {
-	// 	// 		sendAllChats(prev);
-	// 	// 		return [];
-	// 	// 	});
-	// 	// }, 10000);
-	//
-	// 	const intervalId = setInterval(async () => {
-	// 		await sendAllChats();
-	// 		setMessages([]);
-	// 	}, 10000);
-	// 	return () => {
-	// 		clearInterval(intervalId);
-	// 	};
-	// }, []);
 
     const handleSend = () => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
