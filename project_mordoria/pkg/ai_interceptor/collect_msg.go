@@ -1,39 +1,47 @@
 package ai_interceptor
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
-	"github.com/bhuvneshuhciha/project_mordoria/internal/message"
+	finalMessage "github.com/bhuvneshuhciha/project_mordoria/pkg/final_message"
+	"github.com/bhuvneshuhciha/project_mordoria/pkg/groq_controllers"
 	"github.com/gin-gonic/gin"
 )
 
-// store all the messages coming from the client to send to groq
-type FinalPayload struct {
-	ClientId      string            `json:"client_id"`
-	Payload       []message.Message `json:"payload"`
-	Ai_emot_score string            `json:"ai_emot_score"`
-}
 
 func InterceptorHandler(c *gin.Context) {
 	log.Println("Inside the request ----------")
-	var msgBody *FinalPayload = &FinalPayload{}
 
-	err := c.BindJSON(&msgBody)
+	err := c.BindJSON(&finalMessage.MsgBody)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
 		})
-		log.Println("Here is the msg body ------", msgBody)
+		log.Println("Here is the msg body ------", finalMessage.MsgBody)
 		log.Println("Here is the error", err.Error())
 		return
 	}
 
-	log.Println("this is the payload from axios:", msgBody)
+	log.Println("this is the payload from axios:", finalMessage.MsgBody)
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":      "success",
-		"all_messages": msgBody,
+	er := groq_controllers.PrepareData(finalMessage.MsgBody, groq_controllers.DataStruct)
+	if er != nil {
+		c.JSON(http.StatusBadRequest, gin.H {
+			"message" : er,
+		})
+		return
+	}
+	respString, e := groq_controllers.SendDataToGroq()
+	if e != nil {
+		log.Println("Got an error while requesting from groq, file: collect_msg.go")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H {
+		"message": "success",
+		"groq_response": respString,
 	})
 
 	return
