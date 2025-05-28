@@ -16,14 +16,6 @@ function ChatComponent() {
             console.log("Connected to the go backend");
         };
 
-<<<<<<< HEAD
-        ws.current.onmessage = (event) => {
-            console.log("RAW event.data:", event.data);
-            let messageChat = JSON.parse(event.data);
-            // let messageChat = event.data;
-            setMessages((prev) => [...prev, ...messageChat]);
-        };
-=======
 		ws.current.onmessage = (event) => {
 			console.log("RAW event.data:", event.data);
 			let messageChat = JSON.parse(event.data);
@@ -36,7 +28,6 @@ function ChatComponent() {
 				return updated;
 			});
 		};
->>>>>>> ecd09a7 (json_fired)
 
         ws.current.onerror = (error) => {
             console.error("Error encountered", error);
@@ -51,17 +42,6 @@ function ChatComponent() {
         };
     }, []);
 
-<<<<<<< HEAD
-    useEffect(() => {
-        const intervalId = setInterval(async () => {
-            await sendAllChats();
-            setMessages([]);
-        }, 30000);
-        return () => {
-            clearInterval(intervalId);
-        };
-    }, []);
-=======
 	useEffect(() => {
 		const intervalId = setInterval(() => {
 			setMessages((prev) => {
@@ -73,7 +53,6 @@ function ChatComponent() {
 			clearInterval(intervalId);
 		};
 	}, []);
->>>>>>> ecd09a7 (json_fired)
 
 
     const handleSend = () => {
