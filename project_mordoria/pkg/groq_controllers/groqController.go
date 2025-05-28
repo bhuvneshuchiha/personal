@@ -92,22 +92,22 @@ func PrepareData(msgPayload *finalMessage.FinalPayload, dataStruct *PreparedData
 }
 
 func SendDataToGroq() (string, error) {
-	PrepareData(finalMessage.MsgBody, DataStruct)
-	// promptBytes, err := json.MarshalIndent(DataStruct, "", "")
+	err := PrepareData(finalMessage.MsgBody, DataStruct)
+	if err != nil {
+		log.Println("Some error happened in prepare data", err)
+		return "", err
+	}
 	prettyPrompt, err := BuildPromptFromStruct(DataStruct)
 	if err != nil {
 		log.Println("Json was not properly converted to string", err)
 		return "Error:", err
 	}
-	// prettyPrompt := string(promptBytes)
-
 	apiKey := os.Getenv("GROQ_API_KEY")
 	if apiKey == "" {
 		return "api key was not found", errors.New("Api key not found")
 	}
 
 	url := "https://api.groq.com/openai/v1/chat/completions"
-
 	requestBody := GroqRequest{
 		Model: "llama-3.3-70b-versatile",
 		Message: []GroqMessage{
@@ -130,12 +130,10 @@ func SendDataToGroq() (string, error) {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-
 	if resp.StatusCode != 200 {
 		log.Println("Groq response code:", resp.StatusCode)
 		return "", fmt.Errorf("Groq API error: %s", string(body))
 	}
-
 	var groqResponse GroqResponse
 	if err := json.Unmarshal(body, &groqResponse); err != nil {
 		return "", err
