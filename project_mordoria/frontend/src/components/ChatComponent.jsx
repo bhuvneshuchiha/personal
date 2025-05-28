@@ -16,18 +16,18 @@ function ChatComponent() {
             console.log("Connected to the go backend");
         };
 
-		ws.current.onmessage = (event) => {
-			console.log("RAW event.data:", event.data);
-			let messageChat = JSON.parse(event.data);
-			console.log(messageChat);
-			setMessages((prev) => {
-				const updated = [...prev, ...messageChat];
-				console.log("Updated messages array: ", updated);
-				console.log("Originalllllll messages array: ", messages);
-				sendAllChats(updated);
-				return updated;
-			});
-		};
+        ws.current.onmessage = (event) => {
+            console.log("RAW event.data:", event.data);
+            let messageChat = JSON.parse(event.data);
+            console.log(messageChat);
+            setMessages((prev) => {
+                const updated = [...prev, ...messageChat];
+                console.log("Updated messages array: ", updated);
+                console.log("Originalllllll messages array: ", messages);
+                sendAllChats(updated);
+                return updated;
+            });
+        };
 
         ws.current.onerror = (error) => {
             console.error("Error encountered", error);
@@ -42,18 +42,17 @@ function ChatComponent() {
         };
     }, []);
 
-	useEffect(() => {
-		const intervalId = setInterval(() => {
-			setMessages((prev) => {
-				sendAllChats(prev);
-				return [];
-			});
-		}, 30000);
-		return () => {
-			clearInterval(intervalId);
-		};
-	}, []);
-
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setMessages((prev) => {
+                sendAllChats(prev);
+                return [];
+            });
+        }, 30000);
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, []);
 
     const handleSend = () => {
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
@@ -72,28 +71,28 @@ function ChatComponent() {
         }
     };
 
-	const sendAllChats = async (messagesArray = messages) => {
-		let sum = 0;
-		for (let i = 0; i < messagesArray.length; i++) {
-			sum += parseInt(messagesArray[i].ai_emot_score);
-		}
-		console.log("Message array", messagesArray);
+    const sendAllChats = async (messagesArray = messages) => {
+        let sum = 0;
+        for (let i = 0; i < messagesArray.length; i++) {
+            sum += parseInt(messagesArray[i].ai_emot_score);
+        }
+        console.log("Message array", messagesArray);
 
-		const average_ai_emot_score = sum / messagesArray.length;
-		console.log("Average", average_ai_emot_score);
+        const average_ai_emot_score = sum / messagesArray.length;
+        console.log("Average", average_ai_emot_score);
 
-		try {
-			const response = await axios.post(
-				"http://localhost:8081/v1/mordoria/chat_summarize",
-				{
-					client_id: "1",
-					payload: messagesArray.map((m) => ({
-						payload: m.payload,
-						ai_emot_score: m.ai_emot_score,
-					})),
-					ai_emot_score: String(average_ai_emot_score),
-				},
-			);
+        try {
+            const response = await axios.post(
+                "http://localhost:8081/v1/mordoria/chat_summarize",
+                {
+                    client_id: "1",
+                    payload: messagesArray.map((m) => ({
+                        payload: m.payload,
+                        ai_emot_score: m.ai_emot_score,
+                    })),
+                    ai_emot_score: String(average_ai_emot_score),
+                },
+            );
 
             console.log("Response", response.data);
         } catch (error) {
@@ -101,22 +100,21 @@ function ChatComponent() {
         }
     };
 
-
-	return (
-		<div>
-			<input
-				type="text"
-				value={clientMessages}
-				onChange={(e) => setClientMessages(e.target.value)}
-				placeholder="Type your message"
-			/>
-			<input
-				type="text"
-				value={ai_emot}
-				onChange={(e) => set_ai_emot(e.target.value)}
-				placeholder="AI Emot Score"
-			/>
-			<button onClick={handleSend}>Send</button>
+    return (
+        <div>
+            <input
+                type="text"
+                value={clientMessages}
+                onChange={(e) => setClientMessages(e.target.value)}
+                placeholder="Type your message"
+            />
+            <input
+                type="text"
+                value={ai_emot}
+                onChange={(e) => set_ai_emot(e.target.value)}
+                placeholder="AI Emot Score"
+            />
+            <button onClick={handleSend}>Send</button>
 
             <div>
                 <h3>Received Messages:</h3>
