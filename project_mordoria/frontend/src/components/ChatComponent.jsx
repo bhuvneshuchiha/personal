@@ -11,7 +11,6 @@ function ChatComponent() {
 
     useEffect(() => {
         ws.current = new WebSocket("http://localhost:8081/ws/v1/mordoria");
-
         ws.current.onopen = () => {
             console.log("Connected to the go backend");
         };
@@ -19,11 +18,8 @@ function ChatComponent() {
         ws.current.onmessage = (event) => {
             console.log("RAW event.data:", event.data);
             let messageChat = JSON.parse(event.data);
-            console.log(messageChat);
             setMessages((prev) => {
                 const updated = [...prev, ...messageChat];
-                console.log("Updated messages array: ", updated);
-                console.log("Originalllllll messages array: ", messages);
                 sendAllChats(updated);
                 return updated;
             });
