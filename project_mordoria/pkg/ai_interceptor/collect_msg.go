@@ -1,7 +1,6 @@
 package ai_interceptor
 
 import (
-	"errors"
 	"log"
 	"net/http"
 
@@ -12,36 +11,35 @@ import (
 
 
 func InterceptorHandler(c *gin.Context) {
-	log.Println("Inside the request ----------")
-
 	err := c.BindJSON(&finalMessage.MsgBody)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
 		})
-		log.Println("Here is the msg body ------", finalMessage.MsgBody)
 		log.Println("Here is the error", err.Error())
 		return
 	}
-
-	log.Println("this is the payload from axios:", finalMessage.MsgBody)
-
 	er := groq_controllers.PrepareData(finalMessage.MsgBody, groq_controllers.DataStruct)
 	if er != nil {
 		c.JSON(http.StatusBadRequest, gin.H {
+			"success": "false",
 			"message" : er,
 		})
 		return
 	}
 	respString, e := groq_controllers.SendDataToGroq()
 	if e != nil {
-		log.Println("Got an error while requesting from groq, file: collect_msg.go")
+		log.Println("Got an error while requesting from groq, file: collect_msg.go", e)
+		c.JSON(http.StatusBadRequest, gin.H {
+			"success": "false",
+			"message": e,
+		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H {
-		"message": "success",
-		"groq_response": respString,
+		"success": "true",
+		"message": respString,
 	})
 
 	return
