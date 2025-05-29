@@ -6,6 +6,7 @@ import "./style.css";
 
 function ChatComponent() {
 	const [clientMessages, setClientMessages] = useState([]);
+	const [typingTimer, setTypingTimer] = useState(null);
 	const [ai_emot, set_ai_emot] = useState("");
 	const [messages, setMessages] = useState([]);
 	const ws = useRef(null);
@@ -21,7 +22,7 @@ function ChatComponent() {
 			let messageChat = JSON.parse(event.data);
 			setMessages((prev) => {
 				const updated = [...prev, ...messageChat];
-				sendAllChats(updated);
+				// sendAllChats(updated);
 				return updated;
 			});
 		};
@@ -39,17 +40,20 @@ function ChatComponent() {
 		};
 	}, []);
 
-	useEffect(() => {
-		const intervalId = setInterval(() => {
-			setMessages((prev) => {
-				sendAllChats(prev);
-				return [];
-			});
-		}, 30000);
-		return () => {
-			clearInterval(intervalId);
-		};
-	}, []);
+	// useEffect(() => {
+	//        if (!clientMessages) return;
+	// 	const intervalId = setTimeout(() => {
+	// 		setMessages((prev) => {
+	// 			sendAllChats(prev);
+	// 			return [];
+	// 		});
+	// 	}, 30000);
+	// 	return () => {
+	// 		clearTimeout(intervalId);
+	// 	};
+	// }, [messages]);
+
+	// Add this state to track timer
 
 	const handleSend = () => {
 		if (ws.current && ws.current.readyState === WebSocket.OPEN) {
@@ -64,9 +68,40 @@ function ChatComponent() {
 					],
 				}),
 			);
-			setClientMessages([]);
+			// setClientMessages("");
+
+			// Start/reset 30-second timer
+			if (typingTimer) {
+				clearTimeout(typingTimer);
+			}
+			const timer = setTimeout(() => {
+				setMessages((prev) => {
+					if (prev.length > 0) {
+						sendAllChats(prev);
+					}
+					return [];
+				});
+			}, 30000);
+			setTypingTimer(timer);
 		}
 	};
+
+	// const handleSend = () => {
+	// 	if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+	// 		ws.current.send(
+	// 			JSON.stringify({
+	// 				client_id: "kdkdk",
+	// 				payload: [
+	// 					{
+	// 						payload: clientMessages,
+	// 						ai_emot_score: ai_emot.toString(),
+	// 					},
+	// 				],
+	// 			}),
+	// 		);
+	// 		// setClientMessages([]);
+	// 	}
+	// };
 
 	const sendAllChats = async (messagesArray = messages) => {
 		let sum = 0;
@@ -131,37 +166,6 @@ function ChatComponent() {
 			</div>
 		</div>
 	);
-
-	//NOT AT ALL STYLED, but the orginal code.
-	// return (
-	// 	<div class = "chat_div">
-	// 		<input
-	// 			type="text"
-	// 			value={clientMessages}
-	// 			onChange={(e) => setClientMessages(e.target.value)}
-	// 			placeholder="Type your message"
-	// 		/>
-	// 		<input
-	// 			type="text"
-	// 			value={ai_emot}
-	// 			onChange={(e) => set_ai_emot(e.target.value)}
-	// 			placeholder="AI Emot Score"
-	// 		/>
-	// 		<button onClick={handleSend}>Send</button>
-	//
-	// 		<div>
-	// 			<h3>Received Messages:</h3>
-	// 			<ul>
-	// 				{messages.map((item, index) => (
-	// 					<li key={index}>
-	// 						Message: {item.payload} | AI Emot Score: {item.ai_emot_score}
-	// 					</li>
-	// 				))}
-	// 			</ul>
-	// 		</div>
-	// 	</div>
-	// );
-
 }
 
 export default ChatComponent;
