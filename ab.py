@@ -1,4 +1,5 @@
-arr = "abc"
+# arr = "abc"
+arr = "xyz"
 strlst = list(arr)
 lst = []
 

@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -14,7 +13,7 @@ func main() {
 		fmt.Printf("Could not open the file: %s\n", err)
 		return
 	}
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		reader := bufio.NewReader(os.Stdin)
 		text, _ := reader.ReadString('\n')
 		_, err := file.WriteString(text)
