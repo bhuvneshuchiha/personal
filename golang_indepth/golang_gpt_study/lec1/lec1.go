@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log/slog"
+)
 
 var a int
 var b bool
@@ -9,6 +12,7 @@ const pi = 3.13
 
 func greetTime(name string) {
 	fmt.Println("Hello", name)
+	slog.Info("Hi")
 }
 
 func addNums(a, b int) int {

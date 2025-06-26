@@ -1,25 +1,34 @@
-from PyPDF2 import PdfWriter, PdfReader
+import requests
+import time
+import os
 
-def split_pdf_to_two(filename,page_number):
-    pdf_reader = PdfReader(open(filename, "rb"))
-    try:
-        assert page_number < len(pdf_reader.pages)
-        pdf_writer1 = PdfWriter()
-        pdf_writer2 = PdfWriter()
+# API details
+url = "https://geniex02.mahindra.com/api/route/api/generic/epof/740/train"
+payload = {
+    'flag': 'login',
+    'query': 'hi',
+    'callback': 'https://geniex02.mahindra.com/',
+    'user_id': '1'
+}
+headers = {}
 
-        for page in range(page_number):
-            pdf_writer1.add_page(pdf_reader.pages[page])
+# Folder with PDF files
+folder_path = "/Users/bhuvnesh/Downloads/Mahindra_Epod"
 
-        for page in range(page_number,len(pdf_reader.pages)):
-            pdf_writer2.add_page(pdf_reader.pages[page])
+# Iterate over files in the folder
+for filename in os.listdir(folder_path):
+    if filename.lower().endswith(".pdf"):
+        file_path = os.path.join(folder_path, filename)
+        with open(file_path, 'rb') as f:
+            files = [
+                ('file_attachment', (filename, f, 'application/pdf'))
+            ]
 
-        with open("part1.pdf", 'wb') as file1:
-            pdf_writer1.write(file1)
+            response = requests.post(url, headers=headers, data=payload, files=files)
 
-        with open("part2.pdf", 'wb') as file2:
-            pdf_writer2.write(file2)
+            print(f"Sent: {filename}, Response Code: {response.status_code}")
+            print(response.text)
 
-    except AssertionError as e:
-        print("Error: The PDF you are cutting has less pages than you want to cut!")
+        # Wait for 15 seconds before the next request
+        time.sleep(15)
 
-split_pdf_to_two("epod.pdf", 1)

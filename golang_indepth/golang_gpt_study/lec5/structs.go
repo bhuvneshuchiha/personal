@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/bhuvneshuchiha/assert"
 )
 
 type Address struct {
@@ -35,6 +36,7 @@ func main() {
 			ZipCode: "110001",
 		},
 	}
+	assert.Assert(p.Name == p.Address.City, "Fucked")
 	p.PrintSummary()
 
 	p.UpdateZip("110002")
